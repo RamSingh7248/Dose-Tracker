@@ -1,0 +1,25 @@
+{
+  "name": "healthcare-ai-platform",
+  "version": "2.0.0",
+  "description": "Enterprise Healthcare & AI Medication Management Platform",
+  "scripts": {
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev:client": "cd frontend && npm run dev",
+    "dev:server": "cd backend && npm run dev",
+    "start:server": "cd backend && npm start",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "keywords": [
+    "medication",
+    "healthcare",
+    "ai",
+    "telehealth"
+  ],
+  "author": "Enterprise Healthcare Engineering Team",
+  "license": "MIT"
+}
