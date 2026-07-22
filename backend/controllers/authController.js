@@ -19,17 +19,19 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
-    // Public registration only allows 'patient' or 'doctor'. Admin role cannot be self-registered.
-    const userRole = role === 'doctor' ? 'doctor' : 'patient';
+    // Public registration only allows 'ROLE_PATIENT' or 'ROLE_DOCTOR'. Admin role cannot be self-registered.
+    const isDoctorRole = (role === 'doctor' || role === 'ROLE_DOCTOR');
+    const userRole = isDoctorRole ? 'ROLE_DOCTOR' : 'ROLE_PATIENT';
 
     const user = await User.create({
       name,
       email,
       password,
       role: userRole,
-      specialization: userRole === 'doctor' ? (specialization || '') : '',
-      hospital: userRole === 'doctor' ? (hospital || '') : '',
-      licenseNumber: userRole === 'doctor' ? (licenseNumber || '') : '',
+      specialization: isDoctorRole ? (specialization || '') : '',
+      hospital: isDoctorRole ? (hospital || '') : '',
+      licenseNumber: isDoctorRole ? (licenseNumber || '') : '',
+      isVerifiedDoctor: isDoctorRole ? 'pending' : 'approved',
     });
     const token = user.generateToken();
 
@@ -267,8 +269,9 @@ const googleAuth = async (req, res) => {
     let user = await User.findOne({ email: userEmail.toLowerCase() });
 
     if (!user) {
-      // Create new user with Google Auth
-      const userRole = (role === 'doctor' || role === 'admin') ? role : 'patient';
+      // Create new user with Google Auth. Admin role cannot be created via public Google SSO.
+      const isDoctorRole = (role === 'doctor' || role === 'ROLE_DOCTOR');
+      const userRole = isDoctorRole ? 'ROLE_DOCTOR' : 'ROLE_PATIENT';
       const randomPassword = 'GAuth_' + Math.random().toString(36).slice(-10) + '!' + Date.now();
       
       user = await User.create({
@@ -280,6 +283,7 @@ const googleAuth = async (req, res) => {
         googleId: gId,
         isGoogleAuth: true,
         termsAccepted: true,
+        isVerifiedDoctor: isDoctorRole ? 'pending' : 'approved',
       });
 
       await logAuditAction({ req, user, action: 'USER_REGISTERED_GOOGLE', resource: 'Auth', status: 'SUCCESS' });

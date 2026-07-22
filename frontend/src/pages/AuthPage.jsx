@@ -40,15 +40,6 @@ const PRESET_GOOGLE_ACCOUNTS = [
     avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=150',
     color: '#10b981',
   },
-  {
-    id: 'admin-google',
-    name: 'Admin Health Desk',
-    email: 'admin.health@gmail.com',
-    role: 'admin',
-    roleLabel: 'Healthcare Administrator',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150',
-    color: '#f59e0b',
-  },
 ];
 
 export default function AuthPage() {
@@ -425,7 +416,7 @@ export default function AuthPage() {
                   ⚡ 1-Click Demo Portal Sign In
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <button
                     type="button"
                     onClick={() => handleQuickDemoLogin('ramub9349@gmail.com', 'Ramu@6458', '/dashboard')}
@@ -444,16 +435,6 @@ export default function AuthPage() {
                   >
                     <Stethoscope size={15} color="#10b981" />
                     <span style={{ color: '#10b981' }}>Doctor</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('admin@dosetracker.com', 'AdminPassword123!', '/admin/dashboard')}
-                    className="btn-secondary"
-                    style={{ padding: '8px 6px', fontSize: 11, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderRadius: 8, borderColor: 'rgba(245,158,11,0.3)' }}
-                  >
-                    <Shield size={15} color="#f59e0b" />
-                    <span style={{ color: '#f59e0b' }}>Admin</span>
                   </button>
                 </div>
               </div>
@@ -589,7 +570,6 @@ export default function AuthPage() {
                   >
                     <option value="patient">Patient</option>
                     <option value="doctor">Doctor</option>
-                    <option value="admin">Admin</option>
                   </select>
                 </div>
               </div>

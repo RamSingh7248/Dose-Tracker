@@ -23,7 +23,7 @@ const {
   updateDoctorProfile,
 } = require('../controllers/doctorController');
 
-router.use(protect, authorize('doctor', 'admin'));
+router.use(protect, authorize('ROLE_DOCTOR', 'ROLE_ADMIN'));
 
 router.get('/stats', getDoctorStats);
 router.get('/patients', getMyPatients);

@@ -30,18 +30,8 @@ export default function AdminLayout({ children }) {
 
   const handleSwitchPortal = async (targetRole) => {
     try {
-      if (targetRole === 'patient' && user?.role !== 'patient') {
-        await login('ramub9349@gmail.com', 'Ramu@6458');
-        toast.success('Switched to Patient Portal 👤');
-        navigate('/dashboard');
-      } else if (targetRole === 'doctor' && user?.role !== 'doctor') {
-        await login('doctor@dosetracker.com', 'DoctorPassword123!');
-        toast.success('Switched to Doctor Portal 🩺');
-        navigate('/doctor/dashboard');
-      } else {
-        if (targetRole === 'patient') navigate('/dashboard');
-        else if (targetRole === 'doctor') navigate('/doctor/dashboard');
-      }
+      if (targetRole === 'patient') navigate('/dashboard');
+      else if (targetRole === 'doctor') navigate('/doctor/dashboard');
     } catch {
       toast.error('Portal switch failed');
     }

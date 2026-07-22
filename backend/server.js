@@ -169,14 +169,19 @@ async function seedAdmin() {
         name: 'System Admin',
         email: 'admin@dosetracker.com',
         password: 'AdminPassword123!',
-        role: 'admin',
+        role: 'ROLE_ADMIN',
       });
       console.log('🔑 Default admin created: admin@dosetracker.com');
     } else {
       admin.password = 'AdminPassword123!';
-      admin.role = 'admin';
-      await admin.save();
       console.log('🔑 Default admin password verified: admin@dosetracker.com');
+    }
+
+    let ownerAdmin = await User.findOne({ email: 'ramub9349@gmail.com' });
+    if (ownerAdmin) {
+      ownerAdmin.role = 'ROLE_ADMIN';
+      await ownerAdmin.save();
+      console.log('🔑 System owner admin role verified: ramub9349@gmail.com');
     }
   } catch (e) {
     console.error('Admin seed error:', e.message);
@@ -193,14 +198,16 @@ async function seedDoctor() {
         name: 'Dr. Sarah Jenkins',
         email: 'doctor@dosetracker.com',
         password: 'DoctorPassword123!',
-        role: 'doctor',
+        role: 'ROLE_DOCTOR',
         specialization: 'Cardiologist & Physician',
         hospital: 'City General Hospital',
+        isVerifiedDoctor: 'approved',
       });
       console.log('🩺 Default doctor created: doctor@dosetracker.com');
     } else {
       doctor.password = 'DoctorPassword123!';
-      doctor.role = 'doctor';
+      doctor.role = 'ROLE_DOCTOR';
+      doctor.isVerifiedDoctor = 'approved';
       await doctor.save();
       console.log('🩺 Default doctor password verified: doctor@dosetracker.com');
     }

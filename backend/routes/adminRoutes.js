@@ -16,7 +16,7 @@ const {
   getAdminAuditLogs
 } = require('../controllers/adminController');
 
-router.use(protect, authorize('admin'));
+router.use(protect, authorize('ROLE_ADMIN'));
 
 router.get('/stats', getSystemStats);
 router.get('/reports', getSystemReports);

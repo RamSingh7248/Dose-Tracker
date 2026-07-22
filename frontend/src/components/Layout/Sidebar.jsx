@@ -40,17 +40,14 @@ export default function Sidebar() {
 
   const handleSwitchPortal = async (targetRole) => {
     try {
-      if (targetRole === 'doctor' && user?.role !== 'doctor') {
-        await login('doctor@dosetracker.com', 'DoctorPassword123!');
-        toast.success('Switched to Doctor Portal 🩺');
-        navigate('/doctor/dashboard');
-      } else if (targetRole === 'admin' && user?.role !== 'admin') {
-        await login('admin@dosetracker.com', 'AdminPassword123!');
-        toast.success('Switched to Admin Portal 🛡️');
-        navigate('/admin/dashboard');
-      } else {
-        if (targetRole === 'doctor') navigate('/doctor/dashboard');
-        else if (targetRole === 'admin') navigate('/admin/dashboard');
+      if (targetRole === 'doctor') {
+        if (user?.role === 'ROLE_DOCTOR' || user?.role === 'doctor') {
+          navigate('/doctor/dashboard');
+        } else {
+          await login('doctor@dosetracker.com', 'DoctorPassword123!');
+          toast.success('Switched to Doctor Portal 🩺');
+          navigate('/doctor/dashboard');
+        }
       }
     } catch {
       toast.error('Portal switch failed');

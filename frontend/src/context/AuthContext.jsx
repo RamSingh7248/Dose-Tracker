@@ -133,9 +133,9 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{
       user, token, loading,
       login, register, googleLogin, logout, updateUser,
-      isAdmin:   user?.role === 'admin',
-      isDoctor:  user?.role === 'doctor',
-      isPatient: user?.role === 'patient' || !user?.role,
+      isAdmin:   user?.role === 'ROLE_ADMIN' || user?.role === 'admin',
+      isDoctor:  user?.role === 'ROLE_DOCTOR' || user?.role === 'doctor',
+      isPatient: user?.role === 'ROLE_PATIENT' || user?.role === 'patient' || !user?.role,
     }}>
       {children}
     </AuthContext.Provider>

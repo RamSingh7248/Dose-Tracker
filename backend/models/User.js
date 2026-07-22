@@ -25,8 +25,8 @@ const UserSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['patient', 'doctor', 'admin'],
-      default: 'patient',
+      enum: ['patient', 'doctor', 'admin', 'ROLE_PATIENT', 'ROLE_DOCTOR', 'ROLE_ADMIN'],
+      default: 'ROLE_PATIENT',
     },
     // Doctor-specific fields
     specialization:     { type: String, default: '' },
@@ -34,7 +34,7 @@ const UserSchema = new mongoose.Schema(
     licenseNumber:       { type: String, default: '' },
     hospital:            { type: String, default: '' },
     yearsOfExp:          { type: Number, default: 0 },
-    isVerifiedDoctor:   { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
+    isVerifiedDoctor:   { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     mobileNumber:       { type: String, default: '' },
     termsAccepted:      { type: Boolean, default: true },
     // For patients — assigned doctor
@@ -168,7 +168,12 @@ UserSchema.methods.comparePassword = async function (enteredPassword) {
 
 // Generate JWT
 UserSchema.methods.generateToken = function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
+  let role = this.role || 'ROLE_PATIENT';
+  if (role === 'patient') role = 'ROLE_PATIENT';
+  else if (role === 'doctor') role = 'ROLE_DOCTOR';
+  else if (role === 'admin') role = 'ROLE_ADMIN';
+
+  return jwt.sign({ id: this._id, role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE,
   });
 };

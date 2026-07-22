@@ -1,6 +1,14 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+const normalizeRole = (role) => {
+  if (!role) return 'ROLE_PATIENT';
+  if (role === 'admin' || role === 'ROLE_ADMIN') return 'ROLE_ADMIN';
+  if (role === 'doctor' || role === 'ROLE_DOCTOR') return 'ROLE_DOCTOR';
+  if (role === 'patient' || role === 'ROLE_PATIENT') return 'ROLE_PATIENT';
+  return role.startsWith('ROLE_') ? role : `ROLE_${role.toUpperCase()}`;
+};
+
 const protect = async (req, res, next) => {
   let token;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -24,16 +32,18 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Role-based access guard
+// Role-based access guard with RBAC normalization
 const authorize = (...roles) => (req, res, next) => {
-  if (!roles.includes(req.user.role)) {
+  const userRole = normalizeRole(req.user.role);
+  const normalizedAllowedRoles = roles.map(r => normalizeRole(r));
+  if (!normalizedAllowedRoles.includes(userRole)) {
     return res.status(403).json({
       success: false,
-      message: `Access denied. Required role: ${roles.join(' or ')}`,
+      message: `Forbidden: Access denied for role '${userRole}'`,
     });
   }
   next();
 };
 
-module.exports = { protect, authorize };
+module.exports = { protect, authorize, normalizeRole };
 

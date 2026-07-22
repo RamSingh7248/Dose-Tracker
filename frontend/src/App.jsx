@@ -57,6 +57,7 @@ import AdminAppointments  from './pages/admin/AdminAppointments';
 import AdminPrescriptions from './pages/admin/AdminPrescriptions';
 import AdminAuditLogs     from './pages/admin/AdminAuditLogs';
 import AdminSettings      from './pages/admin/AdminSettings';
+import SecretAdminAuth    from './pages/admin/SecretAdminAuth';
 
 function LoadingScreen() {
   return (
@@ -110,6 +111,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<PublicRoute><AuthPage /></PublicRoute>} />
+      <Route path="/secure/admin" element={<SecretAdminAuth />} />
       <Route path="/public/emergency-card/:userId" element={<PublicEmergencyCard />} />
 
       {/* Patient routes */}
