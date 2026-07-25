@@ -95,7 +95,14 @@ export default function UserManagement() {
                   </td>
                   <td style={{ padding: '16px' }}>
                     <select 
-                      value={u.role} 
+                      value={(() => {
+                        // Normalize ROLE_PATIENT -> patient, ROLE_DOCTOR -> doctor, etc.
+                        const r = (u.role || '').toLowerCase();
+                        if (r === 'role_patient' || r === 'patient') return 'patient';
+                        if (r === 'role_doctor' || r === 'doctor') return 'doctor';
+                        if (r === 'role_admin' || r === 'admin') return 'admin';
+                        return r;
+                      })()}
                       onChange={e => updateRole(u._id, e.target.value)}
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'white', padding: '4px 8px', borderRadius: 6, fontSize: 12 }}
                     >

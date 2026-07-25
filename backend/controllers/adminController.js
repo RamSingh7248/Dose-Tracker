@@ -56,7 +56,13 @@ const getAllUsers = async (req, res) => {
   try {
     const { role, search, status } = req.query;
     const filter = {};
-    if (role && role !== 'all') filter.role = role;
+    if (role && role !== 'all') {
+      // Map short role names to ROLE_ prefixed names used in DB
+      const roleMap = { patient: 'ROLE_PATIENT', doctor: 'ROLE_DOCTOR', admin: 'ROLE_ADMIN' };
+      const mappedRole = roleMap[role] || role;
+      // Match both formats (e.g. 'patient' and 'ROLE_PATIENT')
+      filter.role = { $in: [role, mappedRole] };
+    }
     if (status === 'active')   filter.isActive = true;
     if (status === 'suspended') filter.isActive = false;
     if (search) filter.$or = [
@@ -89,9 +95,12 @@ const getUserDetail = async (req, res) => {
 const updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
-    if (!['patient','doctor','admin'].includes(role))
+    if (!['patient','doctor','admin','ROLE_PATIENT','ROLE_DOCTOR','ROLE_ADMIN'].includes(role))
       return res.status(400).json({ success: false, message: 'Invalid role' });
-    const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
+    // Normalize to ROLE_ prefix format for consistency
+    const roleMap = { patient: 'ROLE_PATIENT', doctor: 'ROLE_DOCTOR', admin: 'ROLE_ADMIN' };
+    const normalizedRole = roleMap[role] || role;
+    const user = await User.findByIdAndUpdate(req.params.id, { role: normalizedRole }, { new: true }).select('-password');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.json({ success: true, data: user });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
