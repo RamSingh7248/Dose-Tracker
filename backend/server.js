@@ -64,7 +64,15 @@ app.use('/api/auth/register', rateLimiter(100, 15 * 60 * 1000));
 app.use('/api/', rateLimiter(500, 15 * 60 * 1000));
 
 // ── Middleware ──────────────────────────────────────
-app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:5173'], credentials: true }));
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://dose-tracker-3d4ky53wi-ram-singhs-projects-7070122d.vercel.app"
+  ],
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
@@ -80,26 +88,26 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // ── Routes ──────────────────────────────────────────
-app.use('/api/auth',        require('./routes/authRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/medications', require('./routes/medicationRoutes'));
-app.use('/api/doses',       require('./routes/doseRoutes'));
-app.use('/api/members',     require('./routes/memberRoutes'));
-app.use('/api/reminders',   require('./routes/reminderRoutes'));
-app.use('/api/admin',       require('./routes/adminRoutes'));
-app.use('/api/doctor',      require('./routes/doctorRoutes'));
+app.use('/api/doses', require('./routes/doseRoutes'));
+app.use('/api/members', require('./routes/memberRoutes'));
+app.use('/api/reminders', require('./routes/reminderRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/doctor', require('./routes/doctorRoutes'));
 
 // ── Feature Routes ─────────────────────────────────
-app.use('/api/notifications',  require('./routes/notificationRoutes'));
-app.use('/api/appointments',   require('./routes/appointmentRoutes'));
-app.use('/api/adherence',      require('./routes/adherenceRoutes'));
-app.use('/api/health-events',  require('./routes/healthEventRoutes'));
-app.use('/api/timeline',       require('./routes/timelineRoutes'));
-app.use('/api/documents',      require('./routes/documentRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/appointments', require('./routes/appointmentRoutes'));
+app.use('/api/adherence', require('./routes/adherenceRoutes'));
+app.use('/api/health-events', require('./routes/healthEventRoutes'));
+app.use('/api/timeline', require('./routes/timelineRoutes'));
+app.use('/api/documents', require('./routes/documentRoutes'));
 app.use('/api/emergency-card', require('./routes/emergencyRoutes'));
-app.use('/api/stock',          require('./routes/stockRoutes'));
-app.use('/api/prescriptions',  require('./routes/prescriptionRoutes'));
-app.use('/api/ai',             require('./routes/aiRoutes'));
-app.use('/api/ai-hub',         require('./routes/aiHubRoutes'));
+app.use('/api/stock', require('./routes/stockRoutes'));
+app.use('/api/prescriptions', require('./routes/prescriptionRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/api/ai-hub', require('./routes/aiHubRoutes'));
 app.use('/api/system-settings', require('./routes/systemSettingsRoutes'));
 
 // API Root welcome route
