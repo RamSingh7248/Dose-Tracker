@@ -12,8 +12,10 @@ dotenv.config();
 connectDB().then(() => {
   seedAdmin();
   seedDoctor();
+  seedPatient();
   reminderEngine.start();
 });
+
 
 const app = express();
 
@@ -176,13 +178,6 @@ async function seedAdmin() {
       admin.password = 'AdminPassword123!';
       console.log('🔑 Default admin password verified: admin@dosetracker.com');
     }
-
-    let ownerAdmin = await User.findOne({ email: 'ramub9349@gmail.com' });
-    if (ownerAdmin) {
-      ownerAdmin.role = 'ROLE_ADMIN';
-      await ownerAdmin.save();
-      console.log('🔑 System owner admin role verified: ramub9349@gmail.com');
-    }
   } catch (e) {
     console.error('Admin seed error:', e.message);
   }
@@ -215,3 +210,36 @@ async function seedDoctor() {
     console.error('Doctor seed error:', e.message);
   }
 }
+
+// ── Seed default patient ─────────────────────────────
+async function seedPatient() {
+  try {
+    const User = require('./models/User');
+    let patient = await User.findOne({ email: 'patient@dosetracker.com' });
+    if (!patient) {
+      await User.create({
+        name: 'Alex Johnson',
+        email: 'patient@dosetracker.com',
+        password: 'PatientPassword123!',
+        role: 'ROLE_PATIENT',
+      });
+      console.log('👤 Default patient created: patient@dosetracker.com');
+    } else {
+      patient.password = 'PatientPassword123!';
+      patient.role = 'ROLE_PATIENT';
+      await patient.save();
+      console.log('👤 Default patient password verified: patient@dosetracker.com');
+    }
+
+    // Ensure ramub9349@gmail.com is set to ROLE_PATIENT
+    let ramuUser = await User.findOne({ email: 'ramub9349@gmail.com' });
+    if (ramuUser && ramuUser.role !== 'ROLE_PATIENT') {
+      ramuUser.role = 'ROLE_PATIENT';
+      await ramuUser.save();
+      console.log('👤 Ramu user role updated to ROLE_PATIENT: ramub9349@gmail.com');
+    }
+  } catch (e) {
+    console.error('Patient seed error:', e.message);
+  }
+}
+

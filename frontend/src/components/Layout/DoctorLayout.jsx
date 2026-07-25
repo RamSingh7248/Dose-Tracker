@@ -43,7 +43,7 @@ export default function DoctorLayout({ children }) {
         if (user?.role === 'ROLE_PATIENT' || user?.role === 'patient') {
           navigate('/dashboard');
         } else {
-          await login('ramub9349@gmail.com', 'Ramu@6458');
+          await login('patient@dosetracker.com', 'PatientPassword123!');
           toast.success('Switched to Patient Portal 👤');
           navigate('/dashboard');
         }

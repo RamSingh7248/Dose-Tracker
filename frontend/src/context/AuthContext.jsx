@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import api from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchMe = async () => {
     try {
-      const res = await axios.get('/api/auth/me');
+      const res = await api.get('/auth/me');
       setUser(res.data.user);
     } catch {
       logout();
@@ -80,7 +81,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    const res = await axios.post('/api/auth/login', { email, password });
+    const res = await api.post('/auth/login', { email, password });
     const { token: newToken, user: newUser } = res.data;
     localStorage.setItem('dt_token', newToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
@@ -99,7 +100,7 @@ export const AuthProvider = ({ children }) => {
       hospital: extraData.hospital || '',
       licenseNumber: extraData.licenseNumber || '',
     };
-    const res = await axios.post('/api/auth/register', payload);
+    const res = await api.post('/auth/register', payload);
     const { token: newToken, user: newUser } = res.data;
     localStorage.setItem('dt_token', newToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
@@ -109,7 +110,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const googleLogin = async (googleData) => {
-    const res = await axios.post('/api/auth/google', googleData);
+    const res = await api.post('/auth/google', googleData);
     const { token: newToken, user: newUser } = res.data;
     localStorage.setItem('dt_token', newToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
@@ -133,8 +134,8 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{
       user, token, loading,
       login, register, googleLogin, logout, updateUser,
-      isAdmin:   user?.role === 'ROLE_ADMIN' || user?.role === 'admin',
-      isDoctor:  user?.role === 'ROLE_DOCTOR' || user?.role === 'doctor',
+      isAdmin: user?.role === 'ROLE_ADMIN' || user?.role === 'admin',
+      isDoctor: user?.role === 'ROLE_DOCTOR' || user?.role === 'doctor',
       isPatient: user?.role === 'ROLE_PATIENT' || user?.role === 'patient' || !user?.role,
     }}>
       {children}

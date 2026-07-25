@@ -416,10 +416,10 @@ export default function AuthPage() {
                   ⚡ 1-Click Demo Portal Sign In
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
                   <button
                     type="button"
-                    onClick={() => handleQuickDemoLogin('ramub9349@gmail.com', 'Ramu@6458', '/dashboard')}
+                    onClick={() => handleQuickDemoLogin('patient@dosetracker.com', 'PatientPassword123!', '/dashboard')}
                     className="btn-secondary"
                     style={{ padding: '8px 6px', fontSize: 11, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderRadius: 8 }}
                   >
@@ -435,6 +435,16 @@ export default function AuthPage() {
                   >
                     <Stethoscope size={15} color="#10b981" />
                     <span style={{ color: '#10b981' }}>Doctor</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDemoLogin('admin@dosetracker.com', 'AdminPassword123!', '/admin/dashboard')}
+                    className="btn-secondary"
+                    style={{ padding: '8px 6px', fontSize: 11, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderRadius: 8, borderColor: 'rgba(244,63,94,0.3)' }}
+                  >
+                    <Shield size={15} color="#f43f5e" />
+                    <span style={{ color: '#f43f5e' }}>Admin</span>
                   </button>
                 </div>
               </div>
