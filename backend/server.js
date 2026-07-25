@@ -69,7 +69,8 @@ app.use(cors({
     "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://dose-tracker-3d4ky53wi-ram-singhs-projects-7070122d.vercel.app"
+    "https://dose-tracker-3d4ky53wi-ram-singhs-projects-7070122d.vercel.app",
+    "https://dose-tracker-nine.vercel.app"
   ],
   credentials: true,
 }));
