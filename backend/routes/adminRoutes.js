@@ -18,7 +18,8 @@ const {
 
 router.use(protect, authorize('ROLE_ADMIN'));
 
-router.get('/stats', getSystemStats);
+router.get('/stats',     getSystemStats); // legacy
+router.get('/dashboard', getSystemStats); // canonical alias
 router.get('/reports', getSystemReports);
 router.get('/users', getAllUsers);
 router.get('/users/:id', getUserDetail);

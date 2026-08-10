@@ -250,21 +250,21 @@ export default function Dashboard() {
     <div className="animate-fade-in-up">
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontFamily: 'Outfit', fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
+        <div className="dash-hero-header">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontFamily: 'Outfit', fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, wordBreak: 'break-word' }}>
               {greeting()}, {activeMember ? activeMember.name : user?.name?.split(' ')[0]} 👋
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-              {activeMember ? `Viewing profile: ${activeMember.name} (${activeMember.relationship})` : 'Primary Patient Account Overview'} • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, wordBreak: 'break-word' }}>
+              {activeMember ? `Viewing: ${activeMember.name}` : 'Patient Account'} • {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Link to="/emergency-card" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <QrCode size={16} /> QR Emergency Card
+          <div className="dash-hero-actions" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <Link to="/emergency-card" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+              <QrCode size={15} /> Emergency Card
             </Link>
-            <Link to="/medications" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Plus size={16} /> Add Medication
+            <Link to="/medications" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+              <Plus size={15} /> Add Med
             </Link>
           </div>
         </div>
@@ -301,7 +301,7 @@ export default function Dashboard() {
         </div>
 
         {/* Feature Pill Shortcuts */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} className="feature-pills">
           {[
             { label: '💊 Medications', to: '/medications' },
             { label: '⏰ Reminders', to: '/reminders' },
@@ -330,7 +330,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Row with Health Score & Analytics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+      <div className="stats-grid-4" style={{ marginBottom: 24 }}>
         {/* Health Score Card */}
         <Link
           to="/adherence"
@@ -380,7 +380,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Grid Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 20 }} className="dash-grid">
+      <div className="dash-grid grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
         
         {/* Left column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

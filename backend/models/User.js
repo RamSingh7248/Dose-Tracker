@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const UserSchema = new mongoose.Schema(
   {
@@ -118,6 +119,24 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    // ── Refresh Token Rotation ──
+    refreshToken: {
+      type: String,
+      default: '',
+      select: false,
+    },
+    refreshTokenExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    // ── Password Reset System ──
+    resetPasswordToken: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpire: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
@@ -166,7 +185,7 @@ UserSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Generate JWT
+// Generate Access Token (Short-Lived: 15m)
 UserSchema.methods.generateToken = function () {
   let role = this.role || 'ROLE_PATIENT';
   if (role === 'patient') role = 'ROLE_PATIENT';
@@ -174,8 +193,44 @@ UserSchema.methods.generateToken = function () {
   else if (role === 'admin') role = 'ROLE_ADMIN';
 
   return jwt.sign({ id: this._id, role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+    expiresIn: process.env.JWT_EXPIRE || '15m',
   });
 };
+
+// Generate Refresh Token (Long-Lived: 7d)
+UserSchema.methods.generateRefreshToken = function () {
+  let role = this.role || 'ROLE_PATIENT';
+  if (role === 'patient') role = 'ROLE_PATIENT';
+  else if (role === 'doctor') role = 'ROLE_DOCTOR';
+  else if (role === 'admin') role = 'ROLE_ADMIN';
+
+  const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+  return jwt.sign({ id: this._id, role, tokenType: 'refresh' }, secret, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
+  });
+};
+
+// Generate Cryptographically Secure Password Reset Token (15m expiration)
+UserSchema.methods.getResetPasswordToken = function () {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // Store SHA-256 hash in database
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // Set token expiration (15 minutes)
+  this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+
+  return resetToken;
+};
+
+// High Performance Compound Indexes for Admin & Doctor Queries
+UserSchema.index({ role: 1, isActive: 1, createdAt: -1 });
+UserSchema.index({ assignedDoctor: 1, role: 1 });
+UserSchema.index({ isVerifiedDoctor: 1, role: 1 });
+UserSchema.index({ googleId: 1 });
+UserSchema.index({ email: 1, isActive: 1 });
 
 module.exports = mongoose.model('User', UserSchema);

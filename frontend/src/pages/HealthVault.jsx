@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { documentApi } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Upload, FileText, Search, Download, Share2, Trash2, X,
   Filter, Eye, LinkIcon, Tag, Folder, FolderPlus, RotateCcw,
   History, ArrowUpDown, Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
 
 const TYPE_DETAILS = {
   prescription:      { icon: '💊', label: 'Prescription',      color: '#8b5cf6', badge: 'badge-purple' },
@@ -23,6 +26,7 @@ const TYPE_DETAILS = {
 };
 
 export default function HealthVault() {
+  const queryClient = useQueryClient();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
@@ -86,6 +90,7 @@ export default function HealthVault() {
       setSelectedFile(null);
       setUploadForm({ title: '', type: 'other', folder: currentFolder === 'all' ? 'General' : currentFolder, tags: '', notes: '' });
       fetchDocs();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch (err) { toast.error(err.response?.data?.message || 'Upload failed'); }
     finally { setUploading(false); }
   };
@@ -117,6 +122,7 @@ export default function HealthVault() {
       await documentApi.remove(id);
       toast.success(permanent ? 'Document permanently deleted' : 'Document moved to Trash');
       fetchDocs();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch { toast.error('Failed to delete'); }
   };
 
@@ -125,6 +131,7 @@ export default function HealthVault() {
       await documentApi.restore(id);
       toast.success('Document restored from Trash');
       fetchDocs();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch { toast.error('Failed to restore document'); }
   };
 

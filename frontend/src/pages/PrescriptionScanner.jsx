@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { prescriptionApi } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { Upload, FileText, Trash2, X, Plus, Pill, CheckCircle, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
+
 export default function PrescriptionScanner() {
+  const queryClient = useQueryClient();
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
@@ -69,6 +73,7 @@ export default function PrescriptionScanner() {
       setPreviewUrl(null);
       setUploadForm({ doctorName: '', hospitalName: '', notes: '' });
       fetchPrescriptions();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
       
       // Auto trigger AI scan after successful upload
       handleAIScan(res.data.data._id);
@@ -83,6 +88,7 @@ export default function PrescriptionScanner() {
       toast.success('Prescription deleted');
       if (selectedRx?._id === id) setSelectedRx(null);
       fetchPrescriptions();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch { toast.error('Failed to delete'); }
   };
 

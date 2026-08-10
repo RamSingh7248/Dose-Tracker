@@ -1,8 +1,9 @@
 const path = require('path');
-const fs = require('fs');
+const fs   = require('fs');
 const Prescription = require('../models/Prescription');
-const Medication = require('../models/Medication');
-const Reminder = require('../models/Reminder');
+const Medication   = require('../models/Medication');
+const Reminder     = require('../models/Reminder');
+const { emitDashboardEvent } = require('../services/socketEmitter');
 
 // @desc    Get all prescriptions
 // @route   GET /api/prescriptions
@@ -56,6 +57,12 @@ const uploadPrescription = async (req, res) => {
       notes: req.body.notes || '',
       tags: req.body.tags ? JSON.parse(req.body.tags) : [],
       status: 'pending',
+    });
+
+    // 🔴 Real-time dashboard update
+    emitDashboardEvent('prescription.created', {
+      prescriptionId: rx._id,
+      userId:         req.user.id,
     });
 
     res.status(201).json({ success: true, data: rx });
@@ -175,6 +182,13 @@ const createMedicationsFromRx = async (req, res) => {
       created.push(medication);
     }
 
+    if (created.length > 0) {
+      emitDashboardEvent('medication.created', {
+        userId: req.user.id,
+        count: created.length,
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: `Created ${created.length} medication(s) with reminders`,
@@ -192,6 +206,10 @@ const deletePrescription = async (req, res) => {
   try {
     const rx = await Prescription.findOneAndDelete({ _id: req.params.id, user: req.user.id });
     if (!rx) return res.status(404).json({ success: false, message: 'Prescription not found' });
+
+    // 🔴 Real-time
+    emitDashboardEvent('prescription.deleted', { prescriptionId: req.params.id, userId: req.user.id });
+
     res.json({ success: true, message: 'Prescription removed' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

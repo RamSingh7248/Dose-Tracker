@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { medicationApi, memberApi } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Plus, Edit2, Trash2, Pill, X, Search, Filter } from 'lucide-react';
+
+const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
 
 const FREQ_LABELS = {
   once_daily: 'Once daily', twice_daily: 'Twice daily',
@@ -28,6 +32,7 @@ const defaultForm = {
 };
 
 export default function Medications() {
+  const queryClient = useQueryClient();
   const [medications, setMedications] = useState([]);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +48,25 @@ export default function Medications() {
     fetchAll();
     fetchMembers();
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowModal(false);
+        setDeleteId(null);
+      }
+    };
+    if (showModal || deleteId) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showModal, deleteId]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -99,6 +123,8 @@ export default function Medications() {
       }
       setShowModal(false);
       fetchAll();
+      // Invalidate dashboard so Total Medications card updates instantly
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save');
     } finally { setSaving(false); }
@@ -110,6 +136,7 @@ export default function Medications() {
       toast.success('Medication removed');
       setDeleteId(null);
       fetchAll();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch { toast.error('Failed to delete'); }
   };
 
@@ -236,67 +263,105 @@ export default function Medications() {
       )}
 
       {/* Add/Edit Modal */}
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className="modal-box" style={{ maxWidth: 580 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <h2 style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 700 }}>
-                {editTarget ? 'Edit Medication' : 'Add Medication'}
-              </h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
+          <div className="medication-modal-container animate-fade-in-up">
+            
+            {/* 1. FIXED MODAL HEADER */}
+            <div className="modal-header-fixed">
+              <div>
+                <h2 className="modal-title-text">
+                  {editTarget ? 'Edit Medication' : 'Add Medication'}
+                </h2>
+                <p className="modal-subtitle-text">
+                  {editTarget ? 'Update prescription details, schedule times, and refill alerts' : 'Add a medication to track your schedule and stay on top of your doses.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="modal-close-btn"
+                aria-label="Close modal"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* 2. SCROLLABLE FORM BODY */}
+            <form id="medication-modal-form" onSubmit={handleSubmit} className="modal-body-scrollable">
               {/* Icon & Color row */}
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Icon</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                <div style={{ flex: '1 1 200px' }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Icon</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {ICONS.map(ic => (
-                      <button key={ic} type="button" onClick={() => setForm(p => ({ ...p, icon: ic }))}
-                        style={{ width: 34, height: 34, borderRadius: 8, fontSize: 18, cursor: 'pointer', border: `2px solid ${form.icon === ic ? 'var(--accent-purple)' : 'transparent'}`, background: form.icon === ic ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)' }}>
+                      <button
+                        key={ic}
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, icon: ic }))}
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          fontSize: 18,
+                          cursor: 'pointer',
+                          border: `2px solid ${form.icon === ic ? 'var(--accent-purple)' : 'transparent'}`,
+                          background: form.icon === ic ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
+                        }}
+                      >
                         {ic}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Color</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Color Accent</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', minHeight: 34 }}>
                     {COLORS_OPT.map(c => (
-                      <button key={c} type="button" onClick={() => setForm(p => ({ ...p, color: c }))}
-                        style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: `3px solid ${form.color === c ? 'white' : 'transparent'}` }} />
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, color: c }))}
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          background: c,
+                          cursor: 'pointer',
+                          border: `3px solid ${form.color === c ? 'white' : 'transparent'}`,
+                        }}
+                      />
                     ))}
                   </div>
                 </div>
               </div>
 
               {/* Name */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="med-grid-2">
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Medication Name *</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Medication Name *</label>
                   <input name="name" value={form.name} onChange={handleChange} className="input-field" placeholder="e.g. Metformin" required />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Generic Name</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Generic Name</label>
                   <input name="genericName" value={form.genericName} onChange={handleChange} className="input-field" placeholder="Generic name" />
                 </div>
               </div>
 
               {/* Dosage */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div className="med-grid-3">
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Dosage *</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Dosage *</label>
                   <input name="dosage" value={form.dosage} onChange={handleChange} className="input-field" placeholder="e.g. 500" required />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Unit</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Unit</label>
                   <select name="dosageUnit" value={form.dosageUnit} onChange={handleChange} className="input-field">
                     {['mg','ml','mcg','g','tablet','capsule','drop','unit'].map(u => <option key={u}>{u}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Frequency</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Frequency</label>
                   <select name="frequency" value={form.frequency} onChange={handleChange} className="input-field">
                     {Object.entries(FREQ_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
@@ -305,46 +370,46 @@ export default function Medications() {
 
               {/* Times */}
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Schedule Times</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Schedule Times</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                   {form.times.map((t, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="time" value={t} onChange={e => handleTimeChange(i, e.target.value)} className="input-field" style={{ width: 120 }} />
                       {form.times.length > 1 && (
-                        <button type="button" onClick={() => removeTime(i)} style={{ padding: 4, borderRadius: 6, background: 'rgba(244,63,94,0.1)', border: 'none', cursor: 'pointer', color: 'var(--accent-rose)' }}><X size={12} /></button>
+                        <button type="button" onClick={() => removeTime(i)} style={{ padding: 6, borderRadius: 6, background: 'rgba(244,63,94,0.1)', border: 'none', cursor: 'pointer', color: 'var(--accent-rose)', display: 'flex', alignItems: 'center' }}><X size={14} /></button>
                       )}
                     </div>
                   ))}
-                  <button type="button" onClick={addTime} className="btn-secondary" style={{ padding: '8px 12px', fontSize: 12 }}><Plus size={12} /> Add time</button>
+                  <button type="button" onClick={addTime} className="btn-secondary" style={{ padding: '8px 12px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Plus size={14} /> Add time</button>
                 </div>
               </div>
 
               {/* Pills */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div className="med-grid-3">
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Pills Remaining</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Pills Remaining</label>
                   <input name="pillsRemaining" type="number" min="0" value={form.pillsRemaining} onChange={handleChange} className="input-field" />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Pills Per Dose</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Pills Per Dose</label>
                   <input name="pillsPerDose" type="number" min="1" value={form.pillsPerDose} onChange={handleChange} className="input-field" />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Refill When ≤</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Refill When ≤</label>
                   <input name="refillThreshold" type="number" min="0" value={form.refillThreshold} onChange={handleChange} className="input-field" />
                 </div>
               </div>
 
               {/* Category & Member */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="med-grid-2">
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Category</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Category</label>
                   <select name="category" value={form.category} onChange={handleChange} className="input-field">
                     {['prescription','otc','supplement','vitamin','other'].map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>For Member</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>For Member</label>
                   <select name="member" value={form.member} onChange={handleChange} className="input-field">
                     <option value="">Myself</option>
                     {members.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
@@ -353,49 +418,67 @@ export default function Medications() {
               </div>
 
               {/* Dates */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="med-grid-2">
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Start Date</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Start Date</label>
                   <input name="startDate" type="date" value={form.startDate} onChange={handleChange} className="input-field" />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>End Date (optional)</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>End Date (optional)</label>
                   <input name="endDate" type="date" value={form.endDate} onChange={handleChange} className="input-field" />
                 </div>
               </div>
 
               {/* Doctor & Pharmacy */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="med-grid-2">
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Prescribed By</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Prescribed By</label>
                   <input name="prescribedBy" value={form.prescribedBy} onChange={handleChange} className="input-field" placeholder="Dr. Smith" />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Pharmacy</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Pharmacy</label>
                   <input name="pharmacy" value={form.pharmacy} onChange={handleChange} className="input-field" placeholder="CVS, Walgreens..." />
                 </div>
               </div>
 
               {/* Instructions */}
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Instructions</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Instructions</label>
                 <textarea name="instructions" value={form.instructions} onChange={handleChange} className="input-field" placeholder="Take with food, avoid grapefruit..." rows={2} style={{ resize: 'vertical' }} />
               </div>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
-                <button type="submit" className="btn-primary" disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>
-                  {saving ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Saving...</> : (editTarget ? 'Update' : 'Add Medication')}
-                </button>
-              </div>
             </form>
+
+            {/* 3. STICKY / FIXED MODAL FOOTER */}
+            <div className="modal-footer-fixed">
+              <button type="button" onClick={() => setShowModal(false)} className="btn-secondary" style={{ minWidth: 100 }}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="medication-modal-form"
+                className="btn-primary"
+                disabled={saving}
+                style={{ minWidth: 150, justifyContent: 'center' }}
+              >
+                {saving ? (
+                  <>
+                    <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+                    Saving...
+                  </>
+                ) : (
+                  editTarget ? 'Update Medication' : 'Save Medication'
+                )}
+              </button>
+            </div>
+
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete confirm */}
-      {deleteId && (
-        <div className="modal-overlay">
+      {deleteId && createPortal(
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDeleteId(null); }}>
           <div className="modal-box" style={{ maxWidth: 380, textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
             <h3 style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Delete Medication?</h3>
@@ -405,7 +488,8 @@ export default function Medications() {
               <button onClick={() => handleDelete(deleteId)} className="btn-danger" style={{ flex: 1 }}>Delete</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

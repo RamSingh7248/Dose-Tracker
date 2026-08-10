@@ -123,11 +123,11 @@ export default function HealthLog() {
       </div>
 
       {/* History table */}
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="glass-card responsive-table-cards" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-color)' }}>
           <h3 style={{ fontFamily: 'Outfit', fontSize: 15, fontWeight: 700 }}>Detailed History</h3>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-responsive" style={{ border: 'none', margin: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -141,11 +141,11 @@ export default function HealthLog() {
                 <tr key={i} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '12px 20px', fontWeight: 600 }}>{row.date}</td>
-                  <td style={{ padding: '12px 20px', color: 'var(--text-muted)' }}>{row.total}</td>
-                  <td style={{ padding: '12px 20px', color: 'var(--accent-emerald)', fontWeight: 600 }}>{row.taken}</td>
-                  <td style={{ padding: '12px 20px', color: 'var(--accent-rose)', fontWeight: 600 }}>{row.missed}</td>
-                  <td style={{ padding: '12px 20px' }}>
+                  <td data-label="Date" style={{ padding: '12px 20px', fontWeight: 600 }}>{row.date}</td>
+                  <td data-label="Scheduled" style={{ padding: '12px 20px', color: 'var(--text-muted)' }}>{row.total}</td>
+                  <td data-label="Taken" style={{ padding: '12px 20px', color: 'var(--accent-emerald)', fontWeight: 600 }}>{row.taken}</td>
+                  <td data-label="Missed" style={{ padding: '12px 20px', color: 'var(--accent-rose)', fontWeight: 600 }}>{row.missed}</td>
+                  <td data-label="Adherence" style={{ padding: '12px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div className="progress-bar" style={{ width: 80 }}>
                         <div className="progress-fill" style={{ width: `${row.rate}%`, background: row.rate >= 80 ? 'var(--gradient-primary)' : row.rate >= 60 ? 'linear-gradient(90deg,#f59e0b,#f97316)' : 'linear-gradient(90deg,#f43f5e,#f97316)' }} />
@@ -153,7 +153,7 @@ export default function HealthLog() {
                       <span style={{ fontWeight: 700, color: row.rate >= 80 ? 'var(--accent-purple)' : row.rate >= 60 ? 'var(--accent-amber)' : 'var(--accent-rose)' }}>{row.rate}%</span>
                     </div>
                   </td>
-                  <td style={{ padding: '12px 20px' }}>
+                  <td data-label="Status" style={{ padding: '12px 20px' }}>
                     <span className={`badge ${row.rate >= 80 ? 'badge-green' : row.rate >= 60 ? 'badge-amber' : 'badge-red'}`}>
                       {row.rate >= 80 ? '✅ Good' : row.rate >= 60 ? '⚠️ Fair' : '❌ Poor'}
                     </span>

@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { medicationApi, doseApi } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { CheckCircle, XCircle, Clock, SkipForward, Calendar, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
 
 const STATUS_MAP = {
   taken:   { label: 'Taken',   color: 'var(--accent-emerald)', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle, badgeCls: 'badge-green' },
@@ -27,6 +30,7 @@ function buildSchedule(medications, date) {
 }
 
 export default function DoseLog() {
+  const queryClient = useQueryClient();
   const [medications, setMedications] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -115,6 +119,8 @@ export default function DoseLog() {
         setSchedule(prev => prev.map(d => d.id === id ? { ...d, dbId: null } : d));
       }
       toast.success(labels[status] || 'Updated');
+      // Invalidate dashboard so Logged Doses and Adherence Rate update
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch (err) {
       console.error(err);
       setSchedule(prev => prev.map(d => d.id === id ? { ...d, status: prevStatus, dbId: prevDbId } : d));

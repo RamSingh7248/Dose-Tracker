@@ -2,13 +2,80 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/pill-icon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Dose Tracker - Manage complex medication schedules, track pill quantities, get timely reminders. Never miss a dose again." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+
+    <!-- ── Primary Meta ─────────────────────────────────────── -->
+    <title>DoseTracker — Enterprise Healthcare SaaS</title>
+    <meta name="description" content="DoseTracker - Manage complex medication schedules, track pill quantities, get timely reminders. Enterprise Healthcare SaaS." />
+    <meta name="keywords" content="medication tracker, dose reminder, health management, prescription tracker, pill reminder" />
+    <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#8b5cf6" />
-    <title>Dose Tracker — Smart Medication Manager</title>
+
+    <!-- ── Open Graph / LinkedIn Social Card ────────────────── -->
+    <!-- LinkedIn reads these tags when a recruiter previews your link -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="DoseTracker — Enterprise Healthcare SaaS" />
+    <meta property="og:description" content="Full-stack healthcare platform: medication tracking, dose logging, multi-family support, AI prescription scanner, real-time admin dashboard with Socket.IO." />
+    <meta property="og:url" content="https://dose-tracker-nine.vercel.app" />
+    <meta property="og:image" content="https://dose-tracker-nine.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="DoseTracker" />
+
+    <!-- ── Twitter Card ──────────────────────────────────────── -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DoseTracker — Enterprise Healthcare SaaS" />
+    <meta name="twitter:description" content="Full-stack healthcare platform: medication tracking, AI prescription scanner, real-time admin dashboard." />
+    <meta name="twitter:image" content="https://dose-tracker-nine.vercel.app/og-image.png" />
+
+    <!-- ── PWA / Apple ───────────────────────────────────────── -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="DoseTracker" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/pill-icon.svg" />
+
+    <!-- ── Performance: DNS + Connection Hints ───────────────── -->
+    <!-- Backend on Render — resolve DNS early to shave ~100ms off first API call -->
+    <link rel="preconnect" href="https://dose-tracker-backend.onrender.com" />
+    <link rel="dns-prefetch" href="https://dose-tracker-backend.onrender.com" />
+    <!-- Google Fonts connection -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Unsplash avatars used on AuthPage -->
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+
+    <!-- ── Google Fonts: Non-blocking preload ────────────────── -->
+    <!-- Using media="print" trick: loads font async without blocking render -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <!-- Fallback for browsers that don't support JS font loading -->
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
+
+    <!-- ── Critical inline styles to prevent flash ──────────── -->
+    <!-- Sets the dark background before React mounts, eliminating white flash -->
+    <style>
+      html, body, #root {
+        background-color: #0a0a0f;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

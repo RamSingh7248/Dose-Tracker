@@ -24,7 +24,8 @@ const getTimeline = async (req, res) => {
       const appointments = await Appointment.find(appFilter)
         .populate('doctor', 'name specialization')
         .sort('-appointmentDate')
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
       appointments.forEach(a => {
         timelineItems.push({
@@ -52,7 +53,7 @@ const getTimeline = async (req, res) => {
       const medFilter = { user: userId };
       if (searchRegex) medFilter.$or = [{ name: searchRegex }, { instructions: searchRegex }, { category: searchRegex }];
 
-      const meds = await Medication.find(medFilter).sort('-createdAt').limit(limit);
+      const meds = await Medication.find(medFilter).sort('-createdAt').limit(limit).lean();
       meds.forEach(m => {
         timelineItems.push({
           _id: m._id,
@@ -88,10 +89,10 @@ const getTimeline = async (req, res) => {
 
     // 3. Health Vault Documents (Reports, Lab Tests, Scans)
     if (!category || category === 'all' || category === 'report' || category === 'lab_test') {
-      const docFilter = { user: userId, isArchived: false };
+      const docFilter = { user: userId, isDeleted: false };
       if (searchRegex) docFilter.$or = [{ title: searchRegex }, { notes: searchRegex }, { type: searchRegex }];
 
-      const docs = await HealthDocument.find(docFilter).sort('-createdAt').limit(limit);
+      const docs = await HealthDocument.find(docFilter).sort('-createdAt').limit(limit).lean();
       docs.forEach(d => {
         const iconMap = {
           prescription: '📋', blood_report: '🩸', lab_report: '🧪',
@@ -124,7 +125,7 @@ const getTimeline = async (req, res) => {
       const eventFilter = { user: userId };
       if (searchRegex) eventFilter.$or = [{ title: searchRegex }, { description: searchRegex }, { type: searchRegex }];
 
-      const events = await HealthEvent.find(eventFilter).sort('-eventDate').limit(limit);
+      const events = await HealthEvent.find(eventFilter).sort('-eventDate').limit(limit).lean();
       events.forEach(e => {
         const iconMap = {
           vaccination: '💉', lab_test: '🧪', doctor_visit: '👨‍⚕️',

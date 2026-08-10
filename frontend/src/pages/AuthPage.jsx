@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { authApi } from '../services/api';
 import toast from 'react-hot-toast';
-import { Activity, Eye, EyeOff, Pill, Bell, Users, FileText, Shield, Stethoscope, User, Lock, X, Check, Globe, Sparkles } from 'lucide-react';
-
-const features = [
-  { icon: Pill,     label: 'Track Medications',  desc: 'Manage all your prescriptions in one place' },
-  { icon: Bell,     label: 'Smart Reminders',     desc: 'Never miss a dose with timely notifications' },
-  { icon: Users,    label: 'Multi-Person',        desc: 'Track medications for the whole family' },
-  { icon: FileText, label: 'Health Logs',         desc: 'Detailed reports to share with your doctor' },
-  { icon: Shield,   label: 'Refill Alerts',       desc: 'Get notified before you run out of pills' },
-];
+import { Eye, EyeOff, Shield, Stethoscope, User, Lock, X, Activity } from 'lucide-react';
 
 const GoogleLogoSvg = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+  <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
     <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.62z" />
@@ -21,37 +14,65 @@ const GoogleLogoSvg = () => (
   </svg>
 );
 
-const PRESET_GOOGLE_ACCOUNTS = [
+const MicrosoftLogoSvg = () => (
+  <svg width="18" height="18" viewBox="0 0 23 23" style={{ flexShrink: 0 }}>
+    <path fill="#f35325" d="M1 1h10v10H1z"/>
+    <path fill="#81bc06" d="M12 1h10v10H1z"/>
+    <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+    <path fill="#ffba08" d="M12 12h10v10H12z"/>
+  </svg>
+);
+
+const PORTALS = [
   {
-    id: 'patient-google',
-    name: 'Alex Johnson',
-    email: 'alex.johnson@gmail.com',
-    role: 'patient',
-    roleLabel: 'Patient',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
-    color: 'var(--accent-purple)',
+    id: 'patient',
+    name: 'Patient Portal',
+    badge: 'PATIENT',
+    subtitle: 'Personal Health & Meds',
+    description: 'Manage medications, reminders & personal health records.',
+    icon: User,
+    color: '#3b82f6',
+    borderActive: 'rgba(59, 130, 246, 0.6)',
+    bgActive: 'rgba(59, 130, 246, 0.12)',
+    redirect: '/dashboard',
   },
   {
-    id: 'doctor-google',
-    name: 'Dr. Sarah Jenkins',
-    email: 'dr.sarah.jenkins@gmail.com',
-    role: 'doctor',
-    roleLabel: 'Doctor / Physician',
-    avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=150',
+    id: 'doctor',
+    name: 'Doctor Portal',
+    badge: 'DOCTOR',
+    subtitle: 'Clinical Care & Patients',
+    description: 'Manage patients, prescriptions & medical records.',
+    icon: Stethoscope,
     color: '#10b981',
+    borderActive: 'rgba(16, 185, 129, 0.6)',
+    bgActive: 'rgba(16, 185, 129, 0.12)',
+    redirect: '/doctor/dashboard',
+  },
+  {
+    id: 'admin',
+    name: 'Administrator Portal',
+    badge: 'ADMIN',
+    subtitle: 'System Governance',
+    description: 'System administration, analytics & user management.',
+    icon: Shield,
+    color: '#f43f5e',
+    borderActive: 'rgba(244, 63, 94, 0.6)',
+    bgActive: 'rgba(244, 63, 94, 0.12)',
+    redirect: '/admin/dashboard',
   },
 ];
 
 export default function AuthPage() {
+  const [activePortal, setActivePortal] = useState('patient');
   const [tab, setTab] = useState('login');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleForm, setGoogleForm] = useState({
-    email: 'alex.johnson@gmail.com',
-    name: 'Alex Johnson',
+    email: '',
+    name: '',
     role: 'patient',
-    picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+    picture: '',
   });
 
   const [form, setForm] = useState({
@@ -67,6 +88,15 @@ export default function AuthPage() {
   const { login, register, googleLogin } = useAuth();
   const navigate = useNavigate();
 
+  // Keep form.role synced with activePortal
+  const handleSelectPortal = (portalId) => {
+    setActivePortal(portalId);
+    setForm(p => ({ ...p, role: portalId }));
+    if (portalId === 'admin') {
+      setTab('login'); // Admin portal only allows Sign In
+    }
+  };
+
   // Initialize Google Identity Services SDK if Client ID is configured
   useEffect(() => {
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -78,7 +108,7 @@ export default function AuthPage() {
             if (response.credential) {
               setLoading(true);
               try {
-                const res = await googleLogin({ credential: response.credential, role: form.role });
+                const res = await googleLogin({ credential: response.credential, role: activePortal });
                 toast.success(`Google Auth Verified! Welcome, ${res.user?.name}! 🎉`);
                 const role = res.user?.role;
                 if (role === 'admin') navigate('/admin/dashboard');
@@ -96,7 +126,7 @@ export default function AuthPage() {
         console.warn('Google Identity initialization error:', err);
       }
     }
-  }, [googleLogin, navigate, form.role]);
+  }, [googleLogin, navigate, activePortal]);
 
   const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -105,28 +135,49 @@ export default function AuthPage() {
     setLoading(true);
     try {
       if (tab === 'login') {
-        const res = await login(form.email, form.password);
-        const role = res.user?.role;
+        const res = await login(form.email, form.password, activePortal);
+        const userRole = res.user?.role;
         toast.success(`Welcome back, ${res.user?.name}! 🎉`);
-        if (role === 'admin') navigate('/admin/dashboard');
-        else if (role === 'doctor') navigate('/doctor/dashboard');
-        else navigate('/dashboard');
+
+        if (activePortal === 'admin' || userRole === 'admin' || userRole === 'ROLE_ADMIN') {
+          navigate('/admin/dashboard');
+        } else if (activePortal === 'doctor' || userRole === 'doctor' || userRole === 'ROLE_DOCTOR') {
+          navigate('/doctor/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         if (!form.name.trim()) { toast.error('Name is required'); setLoading(false); return; }
+        const targetRole = activePortal === 'doctor' ? 'doctor' : 'patient';
         await register(
           form.name,
           form.email,
           form.password,
-          form.role,
+          targetRole,
           { specialization: form.specialization, hospital: form.hospital, licenseNumber: form.licenseNumber }
         );
-        toast.success(`Account created as ${form.role.toUpperCase()}! Welcome, ${form.name}! 🎉`);
-        if (form.role === 'admin') navigate('/admin/dashboard');
-        else if (form.role === 'doctor') navigate('/doctor/dashboard');
+        toast.success(`Account created as ${targetRole.toUpperCase()}! Welcome, ${form.name}! 🎉`);
+        if (targetRole === 'doctor') navigate('/doctor/dashboard');
         else navigate('/dashboard');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong');
+      toast.error(err.response?.data?.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!form.email || !form.email.trim()) {
+      toast.error('Please enter your email address in the field above');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await authApi.forgotPassword(form.email.trim());
+      toast.success(res.data?.message || 'Password reset link sent to your registered email!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send password reset email');
     } finally {
       setLoading(false);
     }
@@ -134,7 +185,7 @@ export default function AuthPage() {
 
   const handleGoogleSubmit = async (customPayload) => {
     setLoading(true);
-    const payload = customPayload || googleForm;
+    const payload = customPayload || { ...googleForm, role: activePortal };
     try {
       const res = await googleLogin(payload);
       toast.success(`Signed in with Google! Welcome, ${res.user?.name || 'User'}! 🎉`);
@@ -150,474 +201,439 @@ export default function AuthPage() {
     }
   };
 
-  const handleQuickDemoLogin = async (email, password, targetRoute) => {
-    setLoading(true);
-    setForm(p => ({ ...p, email, password }));
-    try {
-      const res = await login(email, password);
-      toast.success(`Logged into Portal as ${res.user?.name}! 🎉`);
-      navigate(targetRoute);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Demo login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const currentPortalConfig = PORTALS.find(p => p.id === activePortal) || PORTALS[0];
 
   return (
-    <div className="auth-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'stretch' }}>
-      {/* Left — Branding */}
-      <div style={{
-        flex: 1, display: 'none', flexDirection: 'column', justifyContent: 'center',
-        padding: '60px', background: 'linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(99,102,241,0.06) 100%)',
-        borderRight: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden',
-      }} className="auth-left">
-        <div style={{ position: 'absolute', top: -100, right: -100, width: 400, height: 400, borderRadius: '50%', background: 'rgba(139,92,246,0.08)', filter: 'blur(60px)' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Activity size={26} color="white" />
-            </div>
-            <div>
-              <div style={{ fontFamily: 'Outfit', fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>DoseTracker</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Enterprise Healthcare Platform</div>
-            </div>
-          </div>
-          <h1 style={{ fontFamily: 'Outfit', fontSize: 38, fontWeight: 800, lineHeight: 1.2, marginBottom: 16 }}>
-            Never miss a <span className="gradient-text">dose again</span>
-          </h1>
-          <p style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 40, maxWidth: 420 }}>
-            Comprehensive medication management platform connecting Patients, Doctors, and Healthcare Administrators in one seamless ecosystem.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {features.map(({ icon: Icon, label, desc }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={18} color="var(--accent-purple)" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="auth-bg">
+      <div className="animate-fade-in-up" style={{ width: '100%', maxWidth: 500 }}>
 
-      {/* Right — Auth Form & Portal Switcher */}
-      <div style={{ flex: '0 0 auto', width: '100%', maxWidth: 520, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, margin: '0 auto' }}>
-        <div className="animate-fade-in-up" style={{ width: '100%', maxWidth: 460 }}>
-          {/* Mobile logo */}
+        {/* Enterprise Auth Container Card */}
+        <div
+          className="auth-card"
+          style={{
+            borderTop: `4px solid ${currentPortalConfig.color}`,
+            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+          }}
+        >
+          {/* 1. BRAND HEADER */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Activity size={24} color="white" />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 16px rgba(37, 99, 235, 0.35)',
+                }}
+              >
+                <Activity size={24} color="#ffffff" />
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>DoseTracker</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Enterprise Healthcare Platform</div>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
+                  DoseTracker
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: '#3b82f6', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                  ENTERPRISE HEALTHCARE PLATFORM
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="auth-card">
-            {/* Tab switcher */}
-            <div className="tab-bar" style={{ marginBottom: 20 }}>
-              <button className={`tab-item ${tab === 'login' ? 'active' : ''}`} onClick={() => setTab('login')}>Sign In</button>
-              <button className={`tab-item ${tab === 'register' ? 'active' : ''}`} onClick={() => setTab('register')}>Create Account</button>
-            </div>
-
-            <h2 style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 700, marginBottom: 4, color: 'var(--text-primary)' }}>
-              {tab === 'login' ? 'Welcome back' : 'Get started'}
-            </h2>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 18 }}>
-              {tab === 'login' ? 'Sign in to access your portal' : 'Choose your role to create your healthcare account'}
+          {/* 2. DYNAMIC PORTAL HEADING & SUBTITLE */}
+          <div style={{ textAlign: 'center', marginBottom: 22 }}>
+            <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 22, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>
+              {tab === 'login' ? `${currentPortalConfig.name} Login` : `Create ${currentPortalConfig.name} Account`}
+            </h1>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+              {tab === 'login'
+                ? `Welcome back — sign in to access your ${activePortal} portal`
+                : `Create an account to access the ${currentPortalConfig.name.toLowerCase()}`}
             </p>
+          </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {tab === 'register' && (
-                <>
-                  {/* Role Selection Grid */}
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                      Select Account Portal Role
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <button
-                        type="button"
-                        onClick={() => setForm(p => ({ ...p, role: 'patient' }))}
-                        style={{
-                          padding: '12px 10px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
-                          border: `1.5px solid ${form.role === 'patient' ? 'var(--accent-purple)' : 'var(--border-color)'}`,
-                          background: form.role === 'patient' ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.02)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <User size={20} color={form.role === 'patient' ? 'var(--accent-purple)' : 'var(--text-muted)'} style={{ margin: '0 auto 4px' }} />
-                        <div style={{ fontSize: 13, fontWeight: 700, color: form.role === 'patient' ? 'var(--text-primary)' : 'var(--text-muted)' }}>Patient Account</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Personal Health & Meds</div>
-                      </button>
+          {/* 3. SIGN IN / CREATE ACCOUNT TABS */}
+          {activePortal !== 'admin' ? (
+            <div className="tab-bar" style={{ marginBottom: 22 }} role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'login'}
+                className={`tab-item ${tab === 'login' ? 'active' : ''}`}
+                onClick={() => setTab('login')}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'register'}
+                className={`tab-item ${tab === 'register' ? 'active' : ''}`}
+                onClick={() => setTab('register')}
+              >
+                Create Account
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginBottom: 20,
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: 'rgba(244, 63, 94, 0.08)',
+                border: '1px solid rgba(244, 63, 94, 0.25)',
+              }}
+            >
+              <Shield size={16} color="#f43f5e" />
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#f43f5e' }}>
+                Administrator Access Only &bull; System Governance
+              </span>
+            </div>
+          )}
 
-                      <button
-                        type="button"
-                        onClick={() => setForm(p => ({ ...p, role: 'doctor' }))}
-                        style={{
-                          padding: '12px 10px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
-                          border: `1.5px solid ${form.role === 'doctor' ? '#10b981' : 'var(--border-color)'}`,
-                          background: form.role === 'doctor' ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.02)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <Stethoscope size={20} color={form.role === 'doctor' ? '#10b981' : 'var(--text-muted)'} style={{ margin: '0 auto 4px' }} />
-                        <div style={{ fontSize: 13, fontWeight: 700, color: form.role === 'doctor' ? '#10b981' : 'var(--text-muted)' }}>Doctor Account</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Clinical & Patients</div>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Full Name</label>
-                    <input name="name" value={form.name} onChange={handleChange} placeholder={form.role === 'doctor' ? 'Dr. Sarah Jenkins' : 'John Doe'} className="input-field" required />
-                  </div>
-
-                  {/* Doctor specific fields */}
-                  {form.role === 'doctor' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Specialization</label>
-                        <input name="specialization" value={form.specialization} onChange={handleChange} placeholder="Cardiology, General..." className="input-field" />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Hospital / Clinic</label>
-                        <input name="hospital" value={form.hospital} onChange={handleChange} placeholder="City Healthcare" className="input-field" />
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {tab === 'login' ? 'Email / Mobile / Username' : 'Email Address'}
-                </label>
-                <input name="email" value={form.email} onChange={handleChange} placeholder={tab === 'login' ? 'Email, mobile, or username' : 'you@example.com'} className="input-field" required />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Password</label>
-                  {tab === 'login' && (
-                    <button type="button" onClick={() => toast.success('Password reset link sent to your registered email!')} style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', fontSize: 11, cursor: 'pointer' }}>
-                      Forgot Password?
-                    </button>
-                  )}
-                </div>
-                <div style={{ position: 'relative' }}>
+          {/* 4. FORM CONTROLS */}
+          <form onSubmit={handleSubmit} id="auth-form-panel" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {tab === 'register' && activePortal !== 'admin' && (
+              <>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                    Full Name
+                  </label>
                   <input
-                    name="password"
-                    type={showPass ? 'text' : 'password'}
-                    value={form.password}
+                    name="name"
+                    value={form.name}
                     onChange={handleChange}
-                    onKeyDown={e => {
-                      if (e.getModifierState && e.getModifierState('CapsLock')) {
-                        toast('⚠️ Caps Lock is ON', { id: 'caps-lock-warning', icon: '⚠️' });
-                      }
-                    }}
-                    placeholder="••••••••"
+                    placeholder={activePortal === 'doctor' ? 'Dr. Sarah Jenkins' : 'Jane Doe'}
                     className="input-field"
                     required
-                    minLength={6}
-                    style={{ paddingRight: 44 }}
                   />
-                  <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
                 </div>
 
-                {/* Password Strength Meter for Registration */}
-                {tab === 'register' && form.password.length > 0 && (
-                  <div style={{ marginTop: 6 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
-                      <span>Password Strength</span>
-                      <span style={{ fontWeight: 700, color: form.password.length >= 10 ? '#10b981' : form.password.length >= 6 ? '#f59e0b' : '#f43f5e' }}>
-                        {form.password.length >= 10 ? 'Strong (Enterprise)' : form.password.length >= 6 ? 'Medium' : 'Weak'}
-                      </span>
+                {activePortal === 'doctor' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                        Specialization
+                      </label>
+                      <input
+                        name="specialization"
+                        value={form.specialization}
+                        onChange={handleChange}
+                        placeholder="Cardiology"
+                        className="input-field"
+                      />
                     </div>
-                    <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: form.password.length >= 10 ? '100%' : form.password.length >= 6 ? '60%' : '30%', background: form.password.length >= 10 ? '#10b981' : form.password.length >= 6 ? '#f59e0b' : '#f43f5e', transition: 'all 0.3s' }} />
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                        Hospital / Clinic
+                      </label>
+                      <input
+                        name="hospital"
+                        value={form.hospital}
+                        onChange={handleChange}
+                        placeholder="St. Mary Hospital"
+                        className="input-field"
+                      />
                     </div>
                   </div>
                 )}
-              </div>
+              </>
+            )}
 
-              {/* Remember Me / Privacy Checkboxes */}
-              {tab === 'login' ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="checkbox" id="rememberMe" defaultChecked style={{ accentColor: 'var(--accent-purple)', cursor: 'pointer' }} />
-                  <label htmlFor="rememberMe" style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }}>Remember this device for 30 days</label>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <input type="checkbox" required defaultChecked style={{ accentColor: 'var(--accent-purple)' }} />
-                    I agree to the <strong>Terms of Service</strong> &amp; <strong>Privacy Policy</strong>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <input type="checkbox" defaultChecked style={{ accentColor: 'var(--accent-purple)' }} />
-                    Enable AI-powered personalized health insights &amp; dose reminders
-                  </label>
-                </div>
-              )}
+            {/* Email Address */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                Email Address
+              </label>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                className="input-field"
+                required
+                autoComplete="email"
+              />
+            </div>
 
-              <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 4, padding: '12px', fontSize: 14, justifyContent: 'center' }}>
-                {loading ? (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                    {tab === 'login' ? 'Signing in...' : `Creating ${form.role.toUpperCase()} Account...`}
-                  </span>
-                ) : (
-                  tab === 'login' ? 'Sign In' : `Create ${form.role.charAt(0).toUpperCase() + form.role.slice(1)} Account`
+            {/* Password */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Password
+                </label>
+                {tab === 'login' && (
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#3b82f6',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    Forgot Password?
+                  </button>
                 )}
-              </button>
-
-              {/* SSO Buttons */}
-              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  name="password"
+                  type={showPass ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="••••••••••••••••"
+                  className="input-field"
+                  required
+                  minLength={6}
+                  style={{ paddingRight: 44 }}
+                  autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+                />
                 <button
                   type="button"
-                  onClick={() => setShowGoogleModal(true)}
-                  className="btn-secondary"
+                  onClick={() => setShowPass(!showPass)}
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
                   style={{
-                    flex: 1, padding: '10px 12px', fontSize: 12, fontWeight: 600,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(66, 133, 244, 0.4)',
-                    color: '#fff', cursor: 'pointer', transition: 'all 0.2s', borderRadius: 8
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 4,
                   }}
                 >
-                  <GoogleLogoSvg />
-                  <span>Google SSO</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => toast.success('Redirecting to Microsoft Azure AD SSO...')}
-                  className="btn-secondary"
-                  style={{ flex: 1, padding: '10px 12px', fontSize: 12, justifyContent: 'center', gap: 8 }}
-                >
-                  🏢 Microsoft SSO
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-            </form>
 
-            {/* Quick 1-Click Demo Login to Portals */}
-            {tab === 'login' && (
-              <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, textAlign: 'center' }}>
-                  ⚡ 1-Click Demo Portal Sign In
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('patient@dosetracker.com', 'PatientPassword123!', '/dashboard')}
-                    className="btn-secondary"
-                    style={{ padding: '8px 6px', fontSize: 11, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderRadius: 8 }}
-                  >
-                    <User size={15} color="var(--accent-purple)" />
-                    <span>Patient</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('doctor@dosetracker.com', 'DoctorPassword123!', '/doctor/dashboard')}
-                    className="btn-secondary"
-                    style={{ padding: '8px 6px', fontSize: 11, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderRadius: 8, borderColor: 'rgba(16,185,129,0.3)' }}
-                  >
-                    <Stethoscope size={15} color="#10b981" />
-                    <span style={{ color: '#10b981' }}>Doctor</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('admin@dosetracker.com', 'AdminPassword123!', '/admin/dashboard')}
-                    className="btn-secondary"
-                    style={{ padding: '8px 6px', fontSize: 11, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderRadius: 8, borderColor: 'rgba(244,63,94,0.3)' }}
-                  >
-                    <Shield size={15} color="#f43f5e" />
-                    <span style={{ color: '#f43f5e' }}>Admin</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── GOOGLE SIGN-IN INTERACTIVE MODAL ── */}
-      {showGoogleModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
-        }}>
-          <div className="animate-fade-in-up" style={{
-            background: 'var(--card-bg, #1a1c23)', border: '1px solid var(--border-color)',
-            borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            position: 'relative'
-          }}>
-            {/* Modal Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <GoogleLogoSvg />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                    Sign in with Google
-                  </h3>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    Secure Healthcare OAuth 2.0 Provider
+              {tab === 'register' && form.password.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                    <span>Password Security Level</span>
+                    <span style={{ fontWeight: 700, color: form.password.length >= 10 ? '#10b981' : form.password.length >= 6 ? '#f59e0b' : '#f43f5e' }}>
+                      {form.password.length >= 10 ? 'Strong (HIPAA Compliant)' : form.password.length >= 6 ? 'Fair' : 'Weak'}
+                    </span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: form.password.length >= 10 ? '100%' : form.password.length >= 6 ? '60%' : '30%',
+                        background: form.password.length >= 10 ? '#10b981' : form.password.length >= 6 ? '#f59e0b' : '#f43f5e',
+                        transition: 'all 0.3s ease',
+                      }}
+                    />
                   </div>
                 </div>
-              </div>
-              <button
-                onClick={() => setShowGoogleModal(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
-              >
-                <X size={18} />
-              </button>
+              )}
             </div>
 
-            {/* Subtitle instructions */}
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
-              Choose a Google account or enter custom details to sign in / create your account instantly.
-            </p>
-
-            {/* Quick Preset Accounts */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                Select Google Account
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {PRESET_GOOGLE_ACCOUNTS.map(acc => {
-                  const isSelected = googleForm.email === acc.email;
-                  return (
-                    <div
-                      key={acc.id}
-                      onClick={() => setGoogleForm({
-                        email: acc.email,
-                        name: acc.name,
-                        role: acc.role,
-                        picture: acc.avatar,
-                        googleId: `google_${acc.role}_${Date.now()}`
-                      })}
-                      style={{
-                        padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
-                        border: `1.5px solid ${isSelected ? acc.color : 'var(--border-color)'}`,
-                        background: isSelected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <img src={acc.avatar} alt={acc.name} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{acc.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{acc.email}</div>
-                        </div>
-                      </div>
-                      <span className="badge" style={{ background: `${acc.color}20`, color: acc.color, fontSize: 10, fontWeight: 600 }}>
-                        {acc.roleLabel}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Custom Google Email Input */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  Google Email Address
-                </label>
+            {/* Remember Me Checkbox */}
+            {tab === 'login' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
                 <input
-                  type="email"
-                  value={googleForm.email}
-                  onChange={e => setGoogleForm(p => ({ ...p, email: e.target.value }))}
-                  placeholder="your.email@gmail.com"
-                  className="input-field"
-                  style={{ fontSize: 13 }}
-                  required
+                  type="checkbox"
+                  id="rememberMe"
+                  defaultChecked
+                  style={{ accentColor: '#2563eb', cursor: 'pointer', width: 16, height: 16, borderRadius: 4 }}
                 />
+                <label htmlFor="rememberMe" style={{ fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+                  Remember this device for 30 days
+                </label>
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                    Account Display Name
-                  </label>
-                  <input
-                    type="text"
-                    value={googleForm.name}
-                    onChange={e => setGoogleForm(p => ({ ...p, name: e.target.value }))}
-                    placeholder="Full Name"
-                    className="input-field"
-                    style={{ fontSize: 13 }}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                    Portal Role
-                  </label>
-                  <select
-                    value={googleForm.role}
-                    onChange={e => setGoogleForm(p => ({ ...p, role: e.target.value }))}
-                    className="input-field"
-                    style={{ fontSize: 13, background: 'var(--card-bg)' }}
-                  >
-                    <option value="patient">Patient</option>
-                    <option value="doctor">Doctor</option>
-                  </select>
-                </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
+                <input
+                  type="checkbox"
+                  id="terms"
+                  required
+                  defaultChecked
+                  style={{ accentColor: '#2563eb', cursor: 'pointer', width: 16, height: 16 }}
+                />
+                <label htmlFor="terms" style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  I agree to the <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Terms of Service</span> &amp; <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Privacy Policy</span>
+                </label>
               </div>
-            </div>
+            )}
 
-            {/* Submit Google Login */}
+            {/* Primary Action Button */}
             <button
-              type="button"
+              type="submit"
+              className="btn-primary"
               disabled={loading}
-              onClick={() => handleGoogleSubmit()}
               style={{
-                width: '100%', padding: '12px', borderRadius: 10, border: 'none',
-                background: 'linear-gradient(135deg, #4285F4 0%, #34A853 100%)',
-                color: '#ffffff', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                boxShadow: '0 4px 12px rgba(66, 133, 244, 0.3)', transition: 'all 0.2s'
+                marginTop: 6,
+                padding: '13px',
+                fontSize: 14,
+                fontWeight: 700,
+                width: '100%',
+                justifyContent: 'center',
+                minHeight: 46,
+                borderRadius: 10,
+                background:
+                  activePortal === 'doctor'
+                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                    : activePortal === 'admin'
+                    ? 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)'
+                    : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                boxShadow: `0 4px 18px ${currentPortalConfig.bgActive}`,
               }}
             >
               {loading ? (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                  Authenticating with Google...
+                  Authenticating...
                 </span>
+              ) : tab === 'login' ? (
+                `Sign In to ${currentPortalConfig.name}`
               ) : (
-                <>
-                  <GoogleLogoSvg />
-                  <span>Continue with Google</span>
-                </>
+                `Create ${currentPortalConfig.badge} Account`
               )}
             </button>
+          </form>
 
-            <div style={{ marginTop: 12, textAlign: 'center', fontSize: 10, color: 'var(--text-muted)' }}>
-              🔒 Protected by Google Identity Services &amp; 256-bit JWT Encryption
+          {/* 5. SSO OPTIONS DIVIDER & BUTTONS */}
+          {activePortal !== 'admin' && (
+            <>
+              <div className="auth-divider">
+                <span>OR CONTINUE WITH</span>
+              </div>
+
+              <div className="sso-grid">
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleModal(true)}
+                  className="sso-btn"
+                  aria-label="Sign in with Google SSO"
+                >
+                  <GoogleLogoSvg />
+                  <span>Google</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => toast.success('Redirecting to Microsoft Azure AD SSO...')}
+                  className="sso-btn"
+                  aria-label="Sign in with Microsoft SSO"
+                >
+                  <MicrosoftLogoSvg />
+                  <span>Microsoft SSO</span>
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* 6. CHOOSE YOUR PORTAL SWITCHER */}
+          <div style={{ marginTop: 28, paddingTop: 22, borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                CHOOSE YOUR PORTAL
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                Select a portal below to switch authentication view
+              </div>
+            </div>
+
+            {/* Portal Cards Grid */}
+            <div className="portal-cards-grid" role="tablist">
+              {PORTALS.map(p => {
+                const Icon = p.icon;
+                const isActive = activePortal === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => handleSelectPortal(p.id)}
+                    className={`portal-card-btn ${isActive ? 'active' : ''}`}
+                    style={{
+                      borderColor: isActive ? p.color : 'var(--border-color)',
+                      background: isActive ? p.bgActive : 'rgba(255, 255, 255, 0.02)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, width: '100%' }}>
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 8,
+                          background: isActive ? p.color : 'rgba(255, 255, 255, 0.08)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <Icon size={16} color={isActive ? '#ffffff' : 'var(--text-muted)'} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: isActive ? p.color : 'rgba(255, 255, 255, 0.06)',
+                          color: isActive ? '#ffffff' : 'var(--text-muted)',
+                        }}
+                      >
+                        {p.badge}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', marginBottom: 2 }}>
+                        {p.name}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* 7. FOOTER & SECURITY BADGES */}
+          <div style={{ marginTop: 26, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.03)', padding: '4px 12px', borderRadius: 20, border: '1px solid var(--border-color)' }}>
+              <Lock size={12} color="#10b981" />
+              <span>Secure &amp; encrypted authentication</span>
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              <a href="#" onClick={e => { e.preventDefault(); toast('Privacy Policy: Enterprise HIPAA Compliant Data Privacy Architecture'); }} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+                Privacy Policy
+              </a>
+              <span style={{ margin: '0 8px', opacity: 0.4 }}>|</span>
+              <a href="#" onClick={e => { e.preventDefault(); toast('Terms of Service: Standard Enterprise SaaS Service Terms'); }} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+                Terms of Service
+              </a>
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.7 }}>
+              &copy; DoseTracker
+            </div>
+          </div>
+
         </div>
-      )}
+      </div>
     </div>
   );
 }
-

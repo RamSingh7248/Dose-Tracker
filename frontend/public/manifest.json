@@ -1,0 +1,19 @@
+{
+  "short_name": "DoseTracker",
+  "name": "DoseTracker Enterprise Healthcare SaaS",
+  "description": "Smart Medication Management, Dose Tracking, and Clinical Healthcare SaaS",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "48x48 192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0a0a0f",
+  "theme_color": "#8b5cf6",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["medical", "health", "productivity"]
+}

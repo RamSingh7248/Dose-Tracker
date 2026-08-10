@@ -2,7 +2,7 @@ const Member = require('../models/Member');
 
 const getMembers = async (req, res) => {
   try {
-    const members = await Member.find({ user: req.user.id, isActive: true }).sort('name');
+    const members = await Member.find({ user: req.user.id, isActive: true }).sort('name').lean();
     res.json({ success: true, count: members.length, data: members });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -10,6 +10,14 @@ const getMembers = async (req, res) => {
 const createMember = async (req, res) => {
   try {
     req.body.user = req.user.id;
+    if (!req.body.dateOfBirth) req.body.dateOfBirth = null;
+
+    if (req.body.name) {
+      const existing = await Member.findOne({ user: req.user.id, name: req.body.name.trim(), isActive: true }).lean();
+      if (existing) {
+        return res.status(200).json({ success: true, data: existing, message: 'Existing family member retrieved' });
+      }
+    }
     const member = await Member.create(req.body);
     res.status(201).json({ success: true, data: member });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }

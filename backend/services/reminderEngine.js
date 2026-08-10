@@ -5,6 +5,7 @@ const Notification = require('../models/Notification');
 const Dose = require('../models/Dose');
 const User = require('../models/User');
 const { sendNotificationEmail, buildDoseReminderEmail, buildFollowUpEmail } = require('./emailService');
+const { emitDashboardEvent } = require('./socketEmitter');
 
 let engineInterval = null;
 
@@ -21,7 +22,68 @@ const checkAndProcessReminders = async () => {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const currentDay = dayNames[now.getDay()];
 
-    // 1. Process active reminders matching current time or snoozed time
+    const startOfDay = new Date(now); startOfDay.setHours(0,0,0,0);
+    const endOfDay = new Date(now); endOfDay.setHours(23,59,59,999);
+    const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    // 1a. Process active Medication schedules directly
+    const activeMeds = await Medication.find({ isActive: true }).populate('user');
+    for (const med of activeMeds) {
+      if (!med.user || !med.times || !Array.isArray(med.times) || !med.times.length) continue;
+
+      if (med.startDate && new Date(med.startDate) > now) continue;
+      if (med.endDate && new Date(med.endDate) < now) continue;
+
+      for (const timeStr of med.times) {
+        if (timeStr === currentTimeStr) {
+          // Check if notification already created for this medication and time slot today
+          const existingNotif = await Notification.findOne({
+            user: med.user._id,
+            referenceId: med._id,
+            type: 'medicine',
+            'metadata.time': timeStr,
+            createdAt: { $gte: startOfDay, $lte: endOfDay },
+          });
+
+          if (!existingNotif) {
+            const medName = med.name;
+            const dosage = `${med.dosage || ''} ${med.dosageUnit || ''}`.trim();
+            const title = `💊 Reminder: ${medName}`;
+            const message = `Time to take your scheduled dose of ${medName} (${dosage}) at ${timeStr}.`;
+
+            const notif = await Notification.create({
+              user: med.user._id,
+              title,
+              message,
+              type: 'medicine',
+              referenceId: med._id,
+              referenceModel: 'Medication',
+              metadata: {
+                medicationId: med._id,
+                time: timeStr,
+                dateKey,
+                soundEnabled: true,
+                voiceEnabled: true,
+              },
+            });
+
+            // Emit Socket.IO real-time event to client
+            emitDashboardEvent('reminder.triggered', {
+              userId: med.user._id,
+              notification: notif,
+            });
+
+            // Send email if user has email
+            if (med.user.email) {
+              const mail = buildDoseReminderEmail(med.user.name, medName, dosage, timeStr);
+              sendNotificationEmail({ to: med.user.email, ...mail }).catch(() => {});
+            }
+          }
+        }
+      }
+    }
+
+    // 1b. Process active Reminder documents matching current time or snoozed time
     const reminders = await Reminder.find({
       isActive: true,
       $or: [
@@ -44,7 +106,7 @@ const checkAndProcessReminders = async () => {
       const message = `Time to take your scheduled dose of ${medName} (${dosage}) at ${currentTimeStr}.`;
 
       // Create Database Notification
-      await Notification.create({
+      const notif = await Notification.create({
         user: r.user._id,
         title,
         message,
@@ -59,10 +121,16 @@ const checkAndProcessReminders = async () => {
         },
       });
 
+      // Emit Socket.IO real-time event to client
+      emitDashboardEvent('reminder.triggered', {
+        userId: r.user._id,
+        notification: notif,
+      });
+
       // Send Email if enabled
       if (r.emailNotifyEnabled && r.user.email) {
         const mail = buildDoseReminderEmail(r.user.name, medName, dosage, currentTimeStr);
-        await sendNotificationEmail({ to: r.user.email, ...mail });
+        sendNotificationEmail({ to: r.user.email, ...mail }).catch(() => {});
       }
 
       // Update reminder state

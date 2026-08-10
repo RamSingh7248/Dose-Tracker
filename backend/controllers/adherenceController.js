@@ -8,6 +8,8 @@ const getWeekly = async (req, res) => {
   try {
     const days = 7;
     const data = await buildBreakdown(req.user.id, days);
+    // Cache for 5 minutes — adherence data only changes when doses are logged
+    res.set('Cache-Control', 'private, max-age=300');
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -21,6 +23,7 @@ const getMonthly = async (req, res) => {
   try {
     const days = 30;
     const data = await buildBreakdown(req.user.id, days);
+    res.set('Cache-Control', 'private, max-age=300');
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -33,6 +36,8 @@ const getMonthly = async (req, res) => {
 const getYearly = async (req, res) => {
   try {
     const data = await buildYearlyBreakdown(req.user.id);
+    // Cache yearly for 10 minutes — changes very rarely
+    res.set('Cache-Control', 'private, max-age=600');
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -47,7 +52,14 @@ const getHealthScore = async (req, res) => {
     const from = new Date();
     from.setDate(from.getDate() - 30);
 
-    const doses = await Dose.find({ user: req.user.id, scheduledTime: { $gte: from } }).populate('medication', 'name dosage dosageUnit');
+    // .lean() + field projection: only fetch fields we actually use
+    const doses = await Dose.find(
+      { user: req.user.id, scheduledTime: { $gte: from } },
+      { status: 1, scheduledTime: 1, medication: 1 }
+    )
+      .populate('medication', 'name dosage dosageUnit')
+      .lean();
+
     const total = doses.length;
     const taken = doses.filter(d => d.status === 'taken').length;
     const missed = doses.filter(d => d.status === 'missed').length;
@@ -72,14 +84,14 @@ const getHealthScore = async (req, res) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dStr = d.toISOString().split('T')[0];
-      const dayDoses = doses.filter(dose => dose.scheduledTime?.toISOString().startsWith(dStr));
+      const dayDoses = doses.filter(dose => dose.scheduledTime?.toISOString?.()?.startsWith(dStr));
       if (dayDoses.length === 0) break;
       const allTaken = dayDoses.every(dose => dose.status === 'taken');
       if (allTaken) streak++;
       else break;
     }
 
-    // Active medications
+    // Active medications count — single aggregation, no documents fetched
     const activeMeds = await Medication.countDocuments({ user: req.user.id, isActive: true });
 
     // Missed dose list
@@ -93,6 +105,8 @@ const getHealthScore = async (req, res) => {
         scheduledTime: d.scheduledTime,
       }));
 
+    // Cache health score for 5 minutes
+    res.set('Cache-Control', 'private, max-age=300');
     res.json({
       success: true,
       data: {
@@ -121,10 +135,13 @@ async function buildBreakdown(userId, days) {
   from.setDate(from.getDate() - (days - 1));
   from.setHours(0, 0, 0, 0);
 
-  const doses = await Dose.find({
-    user: userId,
-    scheduledTime: { $gte: from },
-  }).populate('medication', 'name icon color dosage dosageUnit');
+  // .lean() for read-only analytics processing
+  const doses = await Dose.find(
+    { user: userId, scheduledTime: { $gte: from } },
+    { status: 1, scheduledTime: 1, medication: 1 }
+  )
+    .populate('medication', 'name icon color dosage dosageUnit')
+    .lean();
 
   const daily = [];
   for (let i = days - 1; i >= 0; i--) {
@@ -132,7 +149,7 @@ async function buildBreakdown(userId, days) {
     d.setDate(d.getDate() - i);
     const dStr = d.toISOString().split('T')[0];
     const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    const dayDoses = doses.filter(dose => dose.scheduledTime?.toISOString().startsWith(dStr));
+    const dayDoses = doses.filter(dose => dose.scheduledTime?.toISOString?.()?.startsWith(dStr));
     const taken = dayDoses.filter(dose => dose.status === 'taken').length;
     const missed = dayDoses.filter(dose => dose.status === 'missed').length;
     const skipped = dayDoses.filter(dose => dose.status === 'skipped').length;
@@ -198,10 +215,11 @@ async function buildYearlyBreakdown(userId) {
   const from = new Date();
   from.setFullYear(from.getFullYear() - 1);
 
-  const doses = await Dose.find({
-    user: userId,
-    scheduledTime: { $gte: from },
-  });
+  // .lean() + projection: only fetch status and scheduledTime
+  const doses = await Dose.find(
+    { user: userId, scheduledTime: { $gte: from } },
+    { status: 1, scheduledTime: 1 }
+  ).lean();
 
   const monthly = [];
   for (let i = 11; i >= 0; i--) {

@@ -1,5 +1,6 @@
 const Appointment = require('../models/Appointment');
 const Notification = require('../models/Notification');
+const { emitDashboardEvent } = require('../services/socketEmitter');
 
 // @desc    Get all appointments
 // @route   GET /api/appointments
@@ -20,7 +21,8 @@ const getAppointments = async (req, res) => {
     const appointments = await Appointment.find(filter)
       .populate('doctor', 'name email specialization hospital')
       .populate('followUpOf', 'title appointmentDate doctorName')
-      .sort('appointmentDate');
+      .sort('appointmentDate')
+      .lean();
 
     res.json({ success: true, count: appointments.length, data: appointments });
   } catch (error) {
@@ -45,7 +47,8 @@ const getUpcoming = async (req, res) => {
     })
       .populate('doctor', 'name specialization')
       .populate('followUpOf', 'title appointmentDate')
-      .sort('appointmentDate');
+      .sort('appointmentDate')
+      .lean();
 
     res.json({ success: true, count: appointments.length, data: appointments });
   } catch (error) {
@@ -60,7 +63,8 @@ const getAppointment = async (req, res) => {
   try {
     const appointment = await Appointment.findOne({ _id: req.params.id, user: req.user.id })
       .populate('doctor', 'name email specialization hospital')
-      .populate('followUpOf', 'title appointmentDate doctorName');
+      .populate('followUpOf', 'title appointmentDate doctorName')
+      .lean();
     if (!appointment) return res.status(404).json({ success: false, message: 'Appointment not found' });
     res.json({ success: true, data: appointment });
   } catch (error) {
@@ -74,6 +78,23 @@ const getAppointment = async (req, res) => {
 const createAppointment = async (req, res) => {
   try {
     req.body.user = req.user.id;
+    if (!req.body.doctor) req.body.doctor = null;
+    if (!req.body.followUpOf) req.body.followUpOf = null;
+
+    // Prevent duplicate record creation on double submit
+    if (req.body.title && req.body.appointmentDate) {
+      const existing = await Appointment.findOne({
+        user: req.user.id,
+        title: req.body.title,
+        appointmentDate: new Date(req.body.appointmentDate),
+        appointmentTime: req.body.appointmentTime || '09:00',
+      }).populate('doctor', 'name email specialization hospital');
+
+      if (existing) {
+        return res.status(200).json({ success: true, data: existing, message: 'Existing appointment retrieved' });
+      }
+    }
+
     const appointment = await Appointment.create(req.body);
     await appointment.populate('doctor', 'name email specialization hospital');
 
@@ -86,6 +107,13 @@ const createAppointment = async (req, res) => {
       type: 'followup',
       referenceId: appointment._id,
       referenceModel: 'Appointment',
+    });
+
+    // 🔴 Real-time dashboard update
+    emitDashboardEvent('appointment.created', {
+      appointmentId: appointment._id,
+      userId: req.user.id,
+      title: appointment.title,
     });
 
     res.status(201).json({ success: true, data: appointment });
@@ -128,6 +156,13 @@ const scheduleFollowUp = async (req, res) => {
       referenceModel: 'Appointment',
     });
 
+    // 🔴 Real-time dashboard update
+    emitDashboardEvent('appointment.created', {
+      appointmentId: appointment._id,
+      userId: req.user.id,
+      isFollowUp: true,
+    });
+
     res.status(201).json({ success: true, data: appointment });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -146,6 +181,14 @@ const updateAppointment = async (req, res) => {
     ).populate('doctor', 'name email specialization hospital');
 
     if (!appointment) return res.status(404).json({ success: false, message: 'Appointment not found' });
+
+    // 🔴 Real-time: status change (e.g. completed, cancelled)
+    emitDashboardEvent('appointment.updated', {
+      appointmentId: appointment._id,
+      status: appointment.status,
+      userId: req.user.id,
+    });
+
     res.json({ success: true, data: appointment });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -185,6 +228,13 @@ const rescheduleAppointment = async (req, res) => {
       type: 'followup',
       referenceId: appointment._id,
       referenceModel: 'Appointment',
+    });
+
+    // 🔴 Real-time dashboard update
+    emitDashboardEvent('appointment.updated', {
+      appointmentId: appointment._id,
+      status: appointment.status,
+      userId: req.user.id,
     });
 
     res.json({ success: true, data: appointment });
@@ -244,6 +294,10 @@ const deleteAppointment = async (req, res) => {
   try {
     const appointment = await Appointment.findOneAndDelete({ _id: req.params.id, user: req.user.id });
     if (!appointment) return res.status(404).json({ success: false, message: 'Appointment not found' });
+
+    // 🔴 Real-time
+    emitDashboardEvent('appointment.deleted', { appointmentId: req.params.id, userId: req.user.id });
+
     res.json({ success: true, message: 'Appointment removed' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

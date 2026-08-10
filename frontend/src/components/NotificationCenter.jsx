@@ -101,6 +101,9 @@ export default function NotificationCenter() {
       {/* Bell Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
         style={{
           position: 'relative',
           background: isOpen ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)',
@@ -113,8 +116,9 @@ export default function NotificationCenter() {
           justifyContent: 'center',
           color: 'var(--text-primary)',
           transition: 'all 0.2s ease',
+          minWidth: 40,
+          minHeight: 40,
         }}
-        title="Notification Center"
       >
         <Bell size={18} color={unreadCount > 0 ? '#a78bfa' : 'currentColor'} />
         {unreadCount > 0 && (
@@ -146,18 +150,14 @@ export default function NotificationCenter() {
       {/* Notification Dropdown Modal */}
       {isOpen && (
         <div
+          role="dialog"
+          aria-label="Notifications"
+          aria-modal="true"
+          className="notif-dropdown"
           style={{
-            position: 'absolute',
-            top: 48,
-            right: 0,
-            width: 380,
-            maxWidth: 'calc(100vw - 40px)',
             background: '#161926',
             border: '1px solid rgba(139,92,246,0.3)',
-            borderRadius: 16,
             boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(139,92,246,0.2)',
-            zIndex: 999999,
-            overflow: 'hidden',
             animation: 'fadeInUp 0.2s ease',
           }}
         >

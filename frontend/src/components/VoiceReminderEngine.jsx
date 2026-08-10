@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { notificationApi, medicationApi, doseApi } from '../services/api';
+import { notificationApi, medicationApi, reminderApi, doseApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Bell, Pill, AlertTriangle, CheckCircle, Volume2, X, Clock, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -8,7 +8,6 @@ export default function VoiceReminderEngine() {
   const { user } = useAuth();
   const [activeAlert, setActiveAlert] = useState(null); // Active live popup banner alert
   const seenIdsRef = useRef(new Set());
-
   const firedMinutesRef = useRef(new Set());
 
   useEffect(() => {
@@ -38,29 +37,52 @@ export default function VoiceReminderEngine() {
       const timeStr = `${hours}:${minutes}`;
       const minuteKey = `${now.toDateString()}-${timeStr}`;
 
-      if (firedMinutesRef.current.has(minuteKey)) return;
+      const [medRes, remRes] = await Promise.allSettled([
+        medicationApi.getAll({ isActive: true }),
+        reminderApi.getAll({ isActive: true }),
+      ]);
 
-      const { reminderApi } = require('../services/api');
-      const res = await reminderApi.getAll({ isActive: true });
-      const activeReminders = res.data.data || [];
+      const activeMedications = medRes.status === 'fulfilled' ? (medRes.value.data?.data || []) : [];
+      const activeReminders = remRes.status === 'fulfilled' ? (remRes.value.data?.data || []) : [];
 
-      const match = activeReminders.find(r => r.time === timeStr || r.times?.includes(timeStr));
-      if (match) {
-        firedMinutesRef.current.add(minuteKey);
-        const medName = match.medication?.name || 'Medication';
-        const dosage = `${match.medication?.dosage || ''} ${match.medication?.dosageUnit || ''}`.trim();
+      // Check active Medications
+      for (const med of activeMedications) {
+        if (med.times && Array.isArray(med.times) && med.times.includes(timeStr)) {
+          const key = `med-${med._id}-${minuteKey}`;
+          if (!firedMinutesRef.current.has(key)) {
+            firedMinutesRef.current.add(key);
+            const medName = med.name;
+            const dosage = `${med.dosage || ''} ${med.dosageUnit || ''}`.trim();
 
-        // Fire alarm
-        triggerLiveAlert({
-          _id: `live-${Date.now()}`,
-          title: `⏰ LIVE ALARM: ${medName}`,
-          message: `Time to take your scheduled dose of ${medName} (${dosage}) at ${timeStr}.`,
-          type: 'medicine',
-          referenceId: match.medication?._id,
-        });
+            triggerLiveAlert({
+              _id: `live-med-${med._id}-${Date.now()}`,
+              title: `💊 Reminder: ${medName}`,
+              message: `Time to take your scheduled dose of ${medName} (${dosage}) at ${timeStr}.`,
+              type: 'medicine',
+              referenceId: med._id,
+            });
+          }
+        }
+      }
 
-        // Trigger email & SMS dispatch backend API
-        reminderApi.testAlert({ medName, dosage }).catch(() => {});
+      // Check active Reminders
+      for (const r of activeReminders) {
+        if (r.time === timeStr || (r.times && r.times.includes(timeStr))) {
+          const key = `rem-${r._id}-${minuteKey}`;
+          if (!firedMinutesRef.current.has(key)) {
+            firedMinutesRef.current.add(key);
+            const medName = r.medication?.name || r.label || 'Medication';
+            const dosage = `${r.medication?.dosage || ''} ${r.medication?.dosageUnit || ''}`.trim();
+
+            triggerLiveAlert({
+              _id: `live-rem-${r._id}-${Date.now()}`,
+              title: `⏰ LIVE ALARM: ${medName}`,
+              message: `Time to take your scheduled dose of ${medName} (${dosage}) at ${timeStr}.`,
+              type: 'medicine',
+              referenceId: r.medication?._id || r._id,
+            });
+          }
+        }
       }
     } catch (err) {
       // Quiet fail

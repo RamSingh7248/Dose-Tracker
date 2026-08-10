@@ -115,7 +115,7 @@ export default function DoctorDashboard() {
       </div>
 
       {/* Overview Stat Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statCards.map((s, i) => (
           <Link
             key={i}
@@ -141,7 +141,7 @@ export default function DoctorDashboard() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         
         {/* Missed Dose Analytics Widget */}
         <div className="glass-card" style={{ padding: 24 }}>

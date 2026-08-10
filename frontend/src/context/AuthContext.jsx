@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import api from "../services/api";
 
@@ -33,6 +33,10 @@ const FONT_MAP = {
   xlarge: '18px',
 };
 
+// Cache TTL: re-validate /auth/me after 5 minutes
+const USER_CACHE_TTL_MS = 5 * 60 * 1000;
+const USER_CACHE_KEY = 'dt_user_cache';
+
 export const applyThemeToDocument = (themeColor = 'purple', fontSize = 'normal', language = 'en') => {
   try {
     const theme = THEME_MAP[themeColor] || THEME_MAP.purple;
@@ -47,20 +51,54 @@ export const applyThemeToDocument = (themeColor = 'purple', fontSize = 'normal',
   }
 };
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('dt_token') || null);
-  const [loading, setLoading] = useState(true);
+/**
+ * Read user from localStorage cache.
+ * Returns null if missing, expired, or corrupt.
+ */
+function readUserCache() {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    if (!raw) return null;
+    const { user, ts } = JSON.parse(raw);
+    if (Date.now() - ts > USER_CACHE_TTL_MS) return null; // expired
+    return user;
+  } catch {
+    return null;
+  }
+}
 
-  // Set axios default header & fetch user
+function writeUserCache(user) {
+  try {
+    localStorage.setItem(USER_CACHE_KEY, JSON.stringify({ user, ts: Date.now() }));
+  } catch { /* storage full — ignore */ }
+}
+
+function clearUserCache() {
+  localStorage.removeItem(USER_CACHE_KEY);
+}
+
+export const AuthProvider = ({ children }) => {
+  const token = localStorage.getItem('dt_token');
+
+  // Bootstrap from cache so the UI renders instantly without a network round-trip.
+  const cachedUser = token ? readUserCache() : null;
+
+  const [user, setUser] = useState(cachedUser);
+  const [loading, setLoading] = useState(!cachedUser && !!token);
+  const fetchedRef = useRef(false);
+
+  // Set axios default header on mount
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchMe();
-    } else {
-      setLoading(false);
+      // Only hit /auth/me if there's no valid cache
+      if (!cachedUser && !fetchedRef.current) {
+        fetchedRef.current = true;
+        fetchMe();
+      }
     }
-  }, [token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Apply Theme, Font Size, and Language whenever user profile updates
   useEffect(() => {
@@ -72,7 +110,9 @@ export const AuthProvider = ({ children }) => {
   const fetchMe = async () => {
     try {
       const res = await api.get('/auth/me');
-      setUser(res.data.user);
+      const fetchedUser = res.data.user;
+      setUser(fetchedUser);
+      writeUserCache(fetchedUser);
     } catch {
       logout();
     } finally {
@@ -80,13 +120,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { token: newToken, user: newUser } = res.data;
+  const login = async (email, password, portal) => {
+    const res = await api.post('/auth/login', { email, password, portal });
+    const { token: newToken, refreshToken: newRefreshToken, user: newUser } = res.data;
     localStorage.setItem('dt_token', newToken);
+    if (newRefreshToken) localStorage.setItem('dt_refresh_token', newRefreshToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-    setToken(newToken);
     setUser(newUser);
+    writeUserCache(newUser);
     return res.data;
   };
 
@@ -101,38 +142,52 @@ export const AuthProvider = ({ children }) => {
       licenseNumber: extraData.licenseNumber || '',
     };
     const res = await api.post('/auth/register', payload);
-    const { token: newToken, user: newUser } = res.data;
+    const { token: newToken, refreshToken: newRefreshToken, user: newUser } = res.data;
     localStorage.setItem('dt_token', newToken);
+    if (newRefreshToken) localStorage.setItem('dt_refresh_token', newRefreshToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-    setToken(newToken);
     setUser(newUser);
+    writeUserCache(newUser);
     return res.data;
   };
 
   const googleLogin = async (googleData) => {
     const res = await api.post('/auth/google', googleData);
-    const { token: newToken, user: newUser } = res.data;
+    const { token: newToken, refreshToken: newRefreshToken, user: newUser } = res.data;
     localStorage.setItem('dt_token', newToken);
+    if (newRefreshToken) localStorage.setItem('dt_refresh_token', newRefreshToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-    setToken(newToken);
     setUser(newUser);
+    writeUserCache(newUser);
     return res.data;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch { /* ignore logout network failure */ }
     localStorage.removeItem('dt_token');
+    localStorage.removeItem('dt_refresh_token');
+    clearUserCache();
     delete axios.defaults.headers.common['Authorization'];
-    setToken(null);
     setUser(null);
     // Reset to default purple
     applyThemeToDocument('purple', 'normal', 'en');
   };
 
-  const updateUser = (updated) => setUser(prev => ({ ...prev, ...updated }));
+  const updateUser = (updated) => {
+    setUser(prev => {
+      const next = { ...prev, ...updated };
+      writeUserCache(next); // keep cache in sync after profile updates
+      return next;
+    });
+    // Also invalidate server cache by triggering a background refresh
+    setTimeout(() => { clearUserCache(); }, USER_CACHE_TTL_MS);
+  };
 
   return (
     <AuthContext.Provider value={{
-      user, token, loading,
+      user, loading,
       login, register, googleLogin, logout, updateUser,
       isAdmin: user?.role === 'ROLE_ADMIN' || user?.role === 'admin',
       isDoctor: user?.role === 'ROLE_DOCTOR' || user?.role === 'doctor',

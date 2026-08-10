@@ -1,5 +1,6 @@
-const Dose = require('../models/Dose');
-const Medication = require('../models/Medication');
+const Dose       = require('../models/Dose');
+const Medication  = require('../models/Medication');
+const { emitDashboardEvent } = require('../services/socketEmitter');
 
 // @desc    Get all doses (with filters)
 // @route   GET /api/doses
@@ -8,19 +9,22 @@ const getDoses = async (req, res) => {
   try {
     const filter = { user: req.user.id };
     if (req.query.medication) filter.medication = req.query.medication;
-    if (req.query.status) filter.status = req.query.status;
-    if (req.query.member) filter.member = req.query.member;
+    if (req.query.status)     filter.status     = req.query.status;
+    if (req.query.member)     filter.member     = req.query.member;
     if (req.query.from || req.query.to) {
       filter.scheduledTime = {};
       if (req.query.from) filter.scheduledTime.$gte = new Date(req.query.from);
       if (req.query.to)   filter.scheduledTime.$lte = new Date(req.query.to);
     }
     const limit = parseInt(req.query.limit) || 100;
+
+    // .lean() for read-only response — 2-5x faster than full Mongoose Documents
     const doses = await Dose.find(filter)
       .populate('medication', 'name dosage dosageUnit icon color')
       .populate('member', 'name')
       .sort('-scheduledTime')
-      .limit(limit);
+      .limit(limit)
+      .lean();
     res.json({ success: true, count: doses.length, data: doses });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -34,29 +38,37 @@ const logDose = async (req, res) => {
   try {
     const { medicationId, status, scheduledTime, notes, sideEffects, pillsTaken } = req.body;
 
-    // Check medication belongs to user
-    const med = await Medication.findOne({ _id: medicationId, user: req.user.id });
+    const med = await Medication.findOne({ _id: medicationId, user: req.user.id }).lean();
     if (!med) return res.status(404).json({ success: false, message: 'Medication not found' });
 
     const dose = await Dose.create({
-      user: req.user.id,
-      medication: medicationId,
-      member: med.member || null,
-      status: status || 'taken',
+      user:         req.user.id,
+      medication:   medicationId,
+      member:       med.member || null,
+      status:       status || 'taken',
       scheduledTime: scheduledTime || new Date(),
-      takenAt: status === 'taken' ? new Date() : null,
+      takenAt:      status === 'taken' ? new Date() : null,
       notes, sideEffects,
-      pillsTaken: pillsTaken || med.pillsPerDose || 1,
+      pillsTaken:   pillsTaken || med.pillsPerDose || 1,
     });
 
     // Deduct pills if taken
     if (status === 'taken' && med.pillsRemaining > 0) {
       await Medication.findByIdAndUpdate(medicationId, {
-        $inc: { pillsRemaining: -(pillsTaken || med.pillsPerDose || 1) }
+        $inc: { pillsRemaining: -(pillsTaken || med.pillsPerDose || 1) },
       });
     }
 
     await dose.populate('medication', 'name dosage icon');
+
+    // 🔴 Real-time dashboard update
+    emitDashboardEvent(status === 'missed' ? 'dose.missed' : 'dose.logged', {
+      doseId:   dose._id,
+      status:   dose.status,
+      userId:   req.user.id,
+      medName:  med.name,
+    });
+
     res.status(201).json({ success: true, data: dose });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -72,22 +84,25 @@ const getDoseStats = async (req, res) => {
     const from = new Date();
     from.setDate(from.getDate() - days);
 
-    const doses = await Dose.find({
-      user: req.user.id,
-      scheduledTime: { $gte: from }
-    });
+    // .lean() — we only need plain objects for counting
+    const doses = await Dose.find(
+      { user: req.user.id, scheduledTime: { $gte: from } },
+      { status: 1 } // projection: only fetch the 'status' field
+    ).lean();
 
-    const total  = doses.length;
-    const taken  = doses.filter(d => d.status === 'taken').length;
-    const missed = doses.filter(d => d.status === 'missed').length;
+    const total   = doses.length;
+    const taken   = doses.filter(d => d.status === 'taken').length;
+    const missed  = doses.filter(d => d.status === 'missed').length;
     const skipped = doses.filter(d => d.status === 'skipped').length;
 
+    // Cache stats for 5 minutes — data changes only when doses are logged
+    res.set('Cache-Control', 'private, max-age=300');
     res.json({
       success: true,
       data: {
         total, taken, missed, skipped,
         adherenceRate: total > 0 ? Math.round((taken / total) * 100) : 0,
-      }
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -99,20 +114,23 @@ const getDoseStats = async (req, res) => {
 // @access  Private
 const deleteDose = async (req, res) => {
   try {
-    const dose = await Dose.findOne({ _id: req.params.id, user: req.user.id });
+    const dose = await Dose.findOne({ _id: req.params.id, user: req.user.id }).lean();
     if (!dose) return res.status(404).json({ success: false, message: 'Dose log not found' });
 
-    // If it was 'taken', increment back the pills remaining
     if (dose.status === 'taken') {
-      const med = await Medication.findById(dose.medication);
+      const med = await Medication.findById(dose.medication).select('_id').lean();
       if (med) {
         await Medication.findByIdAndUpdate(dose.medication, {
-          $inc: { pillsRemaining: dose.pillsTaken }
+          $inc: { pillsRemaining: dose.pillsTaken },
         });
       }
     }
 
     await Dose.findByIdAndDelete(req.params.id);
+
+    // 🔴 Real-time
+    emitDashboardEvent('dose.deleted', { doseId: req.params.id, userId: req.user.id });
+
     res.json({ success: true, message: 'Dose log deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

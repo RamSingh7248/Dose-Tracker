@@ -26,19 +26,11 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter
+const { secureFileFilter } = require('./securityMiddleware');
+
+// File filter with whitelist & dangerous extension rejection
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/webp', 'image/gif',
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  ];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error(`File type ${file.mimetype} not allowed`), false);
-  }
+  secureFileFilter(req, file, cb);
 };
 
 // General upload (single file, 10MB limit)

@@ -117,4 +117,16 @@ const MedicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// ── Performance Indexes ───────────────────────────────────────────────────────
+// Without these, every getMedications() call does a full collection scan.
+// The compound index covers the most common query pattern:
+//   Medication.find({ user: id, isActive: true }).sort('-createdAt')
+MedicationSchema.index({ user: 1 });
+MedicationSchema.index({ user: 1, isActive: 1 });
+MedicationSchema.index({ user: 1, isActive: 1, createdAt: -1 });
+MedicationSchema.index({ user: 1, member: 1, isActive: 1 });
+MedicationSchema.index({ user: 1, name: 1 });
+// For refill-alerts query: { user, isActive: true, pillsRemaining <= refillThreshold }
+MedicationSchema.index({ user: 1, isActive: 1, pillsRemaining: 1 });
+
 module.exports = mongoose.model('Medication', MedicationSchema);

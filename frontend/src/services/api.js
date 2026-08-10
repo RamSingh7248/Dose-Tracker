@@ -1,15 +1,100 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+  withCredentials: true,
 });
 
-// Intercept to always send token
+// Intercept to always send token and CSRF token header
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('dt_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  // Read XSRF-TOKEN cookie if present
+  const xsrfMatch = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+  if (xsrfMatch) {
+    config.headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfMatch[1]);
+  }
   return config;
 });
+
+// ── Automatic Token Refresh Queue Interceptor ──────────────────────────────
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Check if error is 401, request hasn't been retried yet, and isn't a login/register/refresh endpoint
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes('/auth/login') &&
+      !originalRequest.url.includes('/auth/register') &&
+      !originalRequest.url.includes('/auth/refresh')
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const storedRefreshToken = localStorage.getItem('dt_refresh_token');
+        const res = await axios.post(
+          (import.meta.env.VITE_API_URL || '/api') + '/auth/refresh',
+          { refreshToken: storedRefreshToken },
+          { withCredentials: true }
+        );
+
+        if (res.data?.success && res.data?.token) {
+          const newToken = res.data.token;
+          localStorage.setItem('dt_token', newToken);
+          if (res.data.refreshToken) {
+            localStorage.setItem('dt_refresh_token', res.data.refreshToken);
+          }
+          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          processQueue(null, newToken);
+          isRefreshing = false;
+          return api(originalRequest);
+        }
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        isRefreshing = false;
+        // Expired session: clear local token storage
+        localStorage.removeItem('dt_token');
+        localStorage.removeItem('dt_refresh_token');
+        localStorage.removeItem('dt_user_cache');
+        return Promise.reject(refreshErr);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Auth
 export const authApi = {
@@ -18,6 +103,8 @@ export const authApi = {
   getMe: () => api.get('/auth/me'),
   updateMe: (data) => api.put('/auth/me', data),
   changePassword: (data) => api.put('/auth/change-password', data),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password }),
   exportData: () => api.get('/auth/export-data'),
 };
 
@@ -90,6 +177,7 @@ export const doctorApi = {
 
 // Admin
 export const adminApi = {
+  getDashboard:     ()              => api.get('/admin/dashboard'),
   getStats:         ()              => api.get('/admin/stats'),
   getReports:       ()              => api.get('/admin/reports'),
   getUsers:         (params)        => api.get('/admin/users', { params }),

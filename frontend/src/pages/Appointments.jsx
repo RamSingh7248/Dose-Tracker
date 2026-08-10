@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { appointmentApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Calendar, Plus, Clock, MapPin, Video, Phone, Home,
   FlaskConical, Edit2, Trash2, X, RefreshCw, CheckCircle,
@@ -8,11 +9,14 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
+
 const TYPE_ICONS = { clinic: MapPin, online: Video, phone: Phone, home_visit: Home, lab: FlaskConical, other: Calendar };
 const STATUS_BADGE = { scheduled: 'badge-purple', completed: 'badge-green', cancelled: 'badge-red', rescheduled: 'badge-amber', no_show: 'badge-gray' };
 
 export default function Appointments() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [appointments, setAppointments] = useState([]);
   const [upcoming, setUpcoming] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +83,7 @@ export default function Appointments() {
       setShowModal(false);
       resetForm();
       fetchData();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save');
     }
@@ -93,6 +98,7 @@ export default function Appointments() {
       setShowRescheduleModal(false);
       setRescheduleTarget(null);
       fetchData();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch (err) {
       toast.error('Failed to reschedule appointment');
     }
@@ -104,6 +110,7 @@ export default function Appointments() {
       await appointmentApi.remove(id);
       toast.success('Appointment deleted');
       fetchData();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch {
       toast.error('Failed to delete');
     }
@@ -114,6 +121,7 @@ export default function Appointments() {
       await appointmentApi.update(id, { status });
       toast.success(`Marked as ${status}`);
       fetchData();
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     } catch {
       toast.error('Failed to update status');
     }

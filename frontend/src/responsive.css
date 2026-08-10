@@ -1,0 +1,734 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   DoseTracker — responsive.css
+   Global responsive overrides for all breakpoints:
+     320 | 360 | 375 | 390 | 414 | 768 | 1024 | 1440 | 1920
+   Imported in main.jsx AFTER index.css.
+   Never changes colors, branding, or business logic.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════
+   1.  ROOT OVERFLOW GUARD — prevents every horizontal scrollbar
+═══════════════════════════════════════════════════════════════════ */
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* All flex/grid children respect container width */
+* { min-width: 0; }
+
+/* Prevent text overflow on all headings */
+h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   2.  ORB DECORATIVE ELEMENTS — no overflow
+═══════════════════════════════════════════════════════════════════ */
+.orb {
+  max-width: 100vw !important;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   3.  SIDEBAR DRAWER — z-index layering fix
+═══════════════════════════════════════════════════════════════════ */
+.sidebar {
+  z-index: 200;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 190;
+}
+
+/* Body scroll lock when drawer is open */
+body.sidebar-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   4.  PAGE CONTENT — correct margin at every breakpoint
+═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  .page-content {
+    margin-left: 260px;
+    padding: 32px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .page-content {
+    margin-left: 0;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .page-content {
+    margin-left: 0;
+    padding: 14px 12px;
+  }
+}
+
+@media (max-width: 375px) {
+  .page-content {
+    padding: 12px 8px;
+  }
+}
+
+@media (max-width: 320px) {
+  .page-content {
+    padding: 10px 6px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   5.  PAGE HEADER — stack on narrow screens
+═══════════════════════════════════════════════════════════════════ */
+.page-header {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-header .page-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .page-header .page-actions .btn-primary,
+  .page-header .page-actions .btn-secondary {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   6.  PAGE TITLE — typography scaling
+═══════════════════════════════════════════════════════════════════ */
+.page-title {
+  font-size: clamp(18px, 4vw, 26px);
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .page-title { font-size: 20px; }
+}
+@media (max-width: 375px) {
+  .page-title { font-size: 18px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   7.  DASHBOARD HEADER — stack at 480px
+═══════════════════════════════════════════════════════════════════ */
+.dash-hero-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .dash-hero-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dash-hero-header h1 {
+    font-size: 22px !important;
+  }
+
+  .dash-hero-header p {
+    font-size: 11px !important;
+    white-space: normal !important;
+    word-break: break-word;
+  }
+
+  .dash-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .dash-hero-actions a,
+  .dash-hero-actions button {
+    flex: 1;
+    min-width: 130px;
+    justify-content: center;
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .dash-hero-header h1 { font-size: 19px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   8.  STAT CARD GRID — 4→2→1 columns
+═══════════════════════════════════════════════════════════════════ */
+.stats-grid-4 {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1023px) {
+  .stats-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 479px) {
+  .stats-grid-4 {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 359px) {
+  .stats-grid-4 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   9.  DASHBOARD MAIN GRID — sidebar panel stacks on tablet
+═══════════════════════════════════════════════════════════════════ */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 20px;
+}
+
+@media (max-width: 1279px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   10. FEATURE PILL SHORTCUTS — tighter on mobile
+═══════════════════════════════════════════════════════════════════ */
+.feature-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@media (max-width: 480px) {
+  .feature-pills a,
+  .feature-pills button {
+    font-size: 10px !important;
+    padding: 4px 8px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   11. CARD GRID — medication / member / report cards
+═══════════════════════════════════════════════════════════════════ */
+.card-grid-3 {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 1023px) {
+  .card-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 639px) {
+  .card-grid-3 { grid-template-columns: 1fr; }
+}
+
+.card-grid-2 {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 639px) {
+  .card-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   12. CHART RESPONSIVE WRAPPER
+═══════════════════════════════════════════════════════════════════ */
+.chart-wrap {
+  width: 100%;
+  overflow: hidden;
+  min-width: 0;
+  position: relative;
+}
+
+/* Recharts ResponsiveContainer gets a min-height to avoid 0-height */
+.chart-wrap > div {
+  min-height: 180px;
+}
+
+@media (max-width: 480px) {
+  .chart-wrap > div {
+    min-height: 160px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   13. TABLE RESPONSIVE — horizontal scroll + card mode
+═══════════════════════════════════════════════════════════════════ */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+}
+
+.table-responsive table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.table-responsive table th,
+.table-responsive table td {
+  word-break: break-word;
+  max-width: 240px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   14. MODAL — fully mobile-safe
+═══════════════════════════════════════════════════════════════════ */
+.modal-overlay {
+  padding: 16px;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+@media (min-width: 480px) {
+  .modal-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 479px) {
+  .modal-box {
+    padding: 20px 16px !important;
+    border-radius: 16px !important;
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (max-width: 375px) {
+  .modal-box {
+    padding: 16px 12px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   15. AUTH PAGE — card padding scaling
+═══════════════════════════════════════════════════════════════════ */
+.auth-card {
+  padding: clamp(20px, 5vw, 40px);
+}
+
+@media (max-width: 375px) {
+  .auth-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   16. NOTIFICATION DROPDOWN — full width on mobile
+═══════════════════════════════════════════════════════════════════ */
+.notif-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 380px;
+  max-height: 520px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 500;
+}
+
+@media (max-width: 480px) {
+  .notif-dropdown {
+    position: fixed;
+    top: 64px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: calc(100dvh - 80px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   17. BUTTONS — safe sizing on mobile
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 375px) {
+  .btn-primary, .btn-secondary, .btn-danger {
+    font-size: 12px;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   18. GLASS CARD — no overflow on mobile
+═══════════════════════════════════════════════════════════════════ */
+.glass-card {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Disable hover lift on touch devices (reduces jank) */
+@media (hover: none) {
+  .glass-card:hover {
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   19. ADMIN / DOCTOR DASHBOARD GRIDS
+═══════════════════════════════════════════════════════════════════ */
+.admin-stats-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1279px) {
+  .admin-stats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 1023px) {
+  .admin-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 479px) {
+  .admin-stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+
+@media (max-width: 359px) {
+  .admin-stats-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   20. SETTINGS / FORMS — single column on mobile
+═══════════════════════════════════════════════════════════════════ */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 639px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 767px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   21. TAB BAR — horizontal scroll on mobile
+═══════════════════════════════════════════════════════════════════ */
+.tab-bar-scroll {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.tab-bar-scroll::-webkit-scrollbar { display: none; }
+
+.tab-bar-scroll .tab-item {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   22. EMPTY STATE — improved mobile
+═══════════════════════════════════════════════════════════════════ */
+.empty-state {
+  padding: clamp(30px, 8vw, 60px) 20px;
+}
+
+.empty-state-icon {
+  font-size: clamp(32px, 8vw, 48px);
+}
+
+.empty-state h3 {
+  font-size: clamp(15px, 4vw, 18px);
+  word-break: break-word;
+}
+
+.empty-state p {
+  font-size: clamp(12px, 3vw, 14px);
+  word-break: break-word;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   23. SKELETON LOADER — mobile responsive
+═══════════════════════════════════════════════════════════════════ */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+.skeleton-pulse {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0px,
+    rgba(255,255,255,0.09) 80px,
+    rgba(255,255,255,0.04) 160px
+  );
+  background-size: 600px 100%;
+  animation: skeleton-shimmer 1.4s infinite linear;
+  border-radius: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   24. INPUT FIELDS — full width on mobile
+═══════════════════════════════════════════════════════════════════ */
+.input-field {
+  max-width: 100%;
+}
+
+@media (max-width: 480px) {
+  .input-field {
+    font-size: 16px; /* Prevent iOS zoom on focus */
+    padding: 10px 12px;
+  }
+
+  select.input-field {
+    font-size: 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   25. SCORE / RING COMPONENTS — shrink on mobile
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .health-ring {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   26. DOSE LOG ROW — prevent overflow on narrow screens
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .dose-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .dose-row .dose-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .dose-row .dose-actions {
+    flex-shrink: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   27. TOP HEADER BAR (AppLayout) — clear of hamburger on mobile
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+  .top-header-bar {
+    padding-top: 4px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   28. ULTRA WIDE — max content width
+═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 1920px) {
+  .page-content {
+    max-width: 1800px;
+    margin-right: auto;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   29. TOUCH TARGETS — accessibility on mobile
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .sidebar-link,
+  .nav-link {
+    min-height: 48px !important;
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   30. PRINT / ACCESSIBILITY UTILITIES
+═══════════════════════════════════════════════════════════════════ */
+
+/* Screen-reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus ring improvement for keyboard nav */
+:focus-visible {
+  outline: 2px solid var(--accent-purple) !important;
+  outline-offset: 3px !important;
+  border-radius: 4px;
+}
+
+/* Skip to content link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--accent-purple);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 0 0 8px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 9999;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   31. SCROLL RESTORATION
+═══════════════════════════════════════════════════════════════════ */
+.scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   32. RECHARTS RESPONSIVE FIXES
+═══════════════════════════════════════════════════════════════════ */
+/* Prevent recharts SVG from overflowing */
+.recharts-wrapper,
+.recharts-surface {
+  overflow: visible;
+}
+
+@media (max-width: 480px) {
+  /* Reduce recharts tooltip font */
+  .recharts-tooltip-wrapper {
+    font-size: 11px !important;
+  }
+
+  /* Reduce X-axis labels */
+  .recharts-xAxis .recharts-cartesian-axis-tick text {
+    font-size: 10px;
+  }
+
+  /* Reduce legend text */
+  .recharts-legend-item-text {
+    font-size: 11px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   33. MEMBER / FAMILY SWITCHER — fit mobile header
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .family-switcher-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   34. BADGE OVERFLOW GUARD
+═══════════════════════════════════════════════════════════════════ */
+.badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   35. STAT CARD VALUE — shrink on mobile
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 479px) {
+  .stat-card-value {
+    font-size: 22px !important;
+  }
+}
+
+@media (max-width: 359px) {
+  .stat-card-value {
+    font-size: 18px !important;
+  }
+}

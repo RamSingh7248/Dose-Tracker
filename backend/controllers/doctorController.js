@@ -7,18 +7,24 @@ const Appointment = require('../models/Appointment');
 const Reminder = require('../models/Reminder');
 const HealthDocument = require('../models/HealthDocument');
 const HealthEvent = require('../models/HealthEvent');
+const { emitDashboardEvent } = require('../services/socketEmitter');
+
+const patientRoles = ['patient', 'ROLE_PATIENT'];
+const { invalidateCachedUser } = require('./authController');
 
 // GET /api/doctor/stats
 const getDoctorStats = async (req, res) => {
   try {
-    const patients = await User.find({ assignedDoctor: req.user.id, role: 'patient' }).select('_id');
+    const patients = await User.find({ assignedDoctor: req.user.id, role: { $in: patientRoles } }).select('_id').lean();
     const patientIds = patients.map(p => p._id);
     const totalPatients = patientIds.length;
-    const totalMeds = await Medication.countDocuments({ user: { $in: patientIds } });
-    const totalDoses = await Dose.countDocuments({ user: { $in: patientIds } });
-    const takenDoses = await Dose.countDocuments({ user: { $in: patientIds }, status: 'taken' });
+    const [totalMeds, totalDoses, takenDoses, refillAlerts] = await Promise.all([
+      Medication.countDocuments({ user: { $in: patientIds } }),
+      Dose.countDocuments({ user: { $in: patientIds } }),
+      Dose.countDocuments({ user: { $in: patientIds }, status: 'taken' }),
+      Medication.countDocuments({ user: { $in: patientIds }, $expr: { $lte: ['$pillsRemaining', '$refillThreshold'] } }),
+    ]);
     const adherenceRate = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 100;
-    const refillAlerts = await Medication.countDocuments({ user: { $in: patientIds }, $expr: { $lte: ['$pillsRemaining', '$refillThreshold'] } });
     res.json({ success: true, data: { totalPatients, totalMeds, adherenceRate, refillAlerts } });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -27,17 +33,43 @@ const getDoctorStats = async (req, res) => {
 const getMyPatients = async (req, res) => {
   try {
     const { search } = req.query;
-    const filter = { assignedDoctor: req.user.id, role: 'patient' };
+    const filter = { assignedDoctor: req.user.id, role: { $in: patientRoles } };
     if (search) filter.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }];
-    const patients = await User.find(filter).select('-password').sort('-createdAt');
+    const patients = await User.find(filter).select('-password').sort('-createdAt').lean();
+    const patientIds = patients.map(p => p._id);
 
-    // Enrich with stats
-    const enriched = await Promise.all(patients.map(async p => {
-      const meds  = await Medication.countDocuments({ user: p._id, isActive: true });
-      const doses = await Dose.countDocuments({ user: p._id });
-      const taken = await Dose.countDocuments({ user: p._id, status: 'taken' });
-      return { ...p.toObject(), _stats: { meds, doses, adherenceRate: doses > 0 ? Math.round((taken/doses)*100) : 100 } };
-    }));
+    if (patientIds.length === 0) {
+      return res.json({ success: true, count: 0, data: [] });
+    }
+
+    const [medCounts, doseStats] = await Promise.all([
+      Medication.aggregate([
+        { $match: { user: { $in: patientIds }, isActive: true } },
+        { $group: { _id: '$user', count: { $sum: 1 } } }
+      ]),
+      Dose.aggregate([
+        { $match: { user: { $in: patientIds } } },
+        {
+          $group: {
+            _id: '$user',
+            total: { $sum: 1 },
+            taken: { $sum: { $cond: [{ $eq: ['$status', 'taken'] }, 1, 0] } }
+          }
+        }
+      ])
+    ]);
+
+    const medMap = Object.fromEntries(medCounts.map(m => [m._id.toString(), m.count]));
+    const doseMap = Object.fromEntries(doseStats.map(d => [d._id.toString(), d]));
+
+    const enriched = patients.map(p => {
+      const pIdStr = p._id.toString();
+      const meds = medMap[pIdStr] || 0;
+      const dStat = doseMap[pIdStr] || { total: 0, taken: 0 };
+      const adherenceRate = dStat.total > 0 ? Math.round((dStat.taken / dStat.total) * 100) : 100;
+      return { ...p, _stats: { meds, doses: dStat.total, adherenceRate } };
+    });
+
     res.json({ success: true, count: enriched.length, data: enriched });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -45,14 +77,16 @@ const getMyPatients = async (req, res) => {
 // GET /api/doctor/patients/:id
 const getPatientDetail = async (req, res) => {
   try {
-    const patient = await User.findOne({ _id: req.params.id, assignedDoctor: req.user.id }).select('-password');
+    const patient = await User.findOne({ _id: req.params.id, assignedDoctor: req.user.id, role: { $in: patientRoles } }).select('-password').lean();
     if (!patient) return res.status(404).json({ success: false, message: 'Patient not found or not assigned to you' });
-    const medications = await Medication.find({ user: req.params.id });
-    const recentDoses = await Dose.find({ user: req.params.id }).populate('medication','name icon color').sort('-scheduledTime').limit(20);
-    const totalDoses  = await Dose.countDocuments({ user: req.params.id });
-    const takenDoses  = await Dose.countDocuments({ user: req.params.id, status: 'taken' });
-    const notes = await ClinicalNote.find({ patient: req.params.id, doctor: req.user.id }).sort('-createdAt').limit(10);
-    const appointments = await Appointment.find({ user: req.params.id }).sort('-appointmentDate').limit(10);
+    const [medications, recentDoses, totalDoses, takenDoses, notes, appointments] = await Promise.all([
+      Medication.find({ user: req.params.id }).lean(),
+      Dose.find({ user: req.params.id }).populate('medication','name icon color').sort('-scheduledTime').limit(20).lean(),
+      Dose.countDocuments({ user: req.params.id }),
+      Dose.countDocuments({ user: req.params.id, status: 'taken' }),
+      ClinicalNote.find({ patient: req.params.id, doctor: req.user.id }).sort('-createdAt').limit(10).lean(),
+      Appointment.find({ user: req.params.id }).sort('-appointmentDate').limit(10).lean(),
+    ]);
     
     // Audit logging for patient record access
     const { logAuditAction } = require('../middleware/securityMiddleware');
@@ -75,14 +109,14 @@ const getPatientDetail = async (req, res) => {
 // GET /api/doctor/patients/:id/timeline
 const getPatientTimeline = async (req, res) => {
   try {
-    const patient = await User.findOne({ _id: req.params.id, assignedDoctor: req.user.id });
+    const patient = await User.findOne({ _id: req.params.id, assignedDoctor: req.user.id, role: { $in: patientRoles } }).lean();
     if (!patient) return res.status(404).json({ success: false, message: 'Patient not found' });
 
     const [doses, appointments, docs, events] = await Promise.all([
-      Dose.find({ user: req.params.id }).populate('medication', 'name dosage dosageUnit').sort('-scheduledTime').limit(20),
-      Appointment.find({ user: req.params.id }).sort('-appointmentDate').limit(20),
-      HealthDocument.find({ user: req.params.id }).sort('-createdAt').limit(20),
-      HealthEvent.find({ user: req.params.id }).sort('-eventDate').limit(20),
+      Dose.find({ user: req.params.id }).populate('medication', 'name dosage dosageUnit').sort('-scheduledTime').limit(20).lean(),
+      Appointment.find({ user: req.params.id }).sort('-appointmentDate').limit(20).lean(),
+      HealthDocument.find({ user: req.params.id }).sort('-createdAt').limit(20).lean(),
+      HealthEvent.find({ user: req.params.id }).sort('-eventDate').limit(20).lean(),
     ]);
 
     const timeline = [];
@@ -100,13 +134,13 @@ const getPatientTimeline = async (req, res) => {
 // GET /api/doctor/patients/:id/doses
 const getPatientDoses = async (req, res) => {
   try {
-    const patient = await User.findOne({ _id: req.params.id, assignedDoctor: req.user.id });
+    const patient = await User.findOne({ _id: req.params.id, assignedDoctor: req.user.id, role: { $in: patientRoles } }).lean();
     if (!patient) return res.status(404).json({ success: false, message: 'Patient not found' });
     const filter = { user: req.params.id };
     if (req.query.status) filter.status = req.query.status;
     if (req.query.from) filter.scheduledTime = { ...filter.scheduledTime, $gte: new Date(req.query.from) };
     if (req.query.to)   filter.scheduledTime = { ...filter.scheduledTime, $lte: new Date(req.query.to) };
-    const doses = await Dose.find(filter).populate('medication','name icon color dosage dosageUnit').sort('-scheduledTime').limit(50);
+    const doses = await Dose.find(filter).populate('medication','name icon color dosage dosageUnit').sort('-scheduledTime').limit(50).lean();
     res.json({ success: true, count: doses.length, data: doses });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -114,7 +148,7 @@ const getPatientDoses = async (req, res) => {
 // GET /api/doctor/notes
 const getMyNotes = async (req, res) => {
   try {
-    const notes = await ClinicalNote.find({ doctor: req.user.id }).populate('patient','name email').sort('-createdAt');
+    const notes = await ClinicalNote.find({ doctor: req.user.id }).populate('patient','name email').sort('-createdAt').lean();
     res.json({ success: true, count: notes.length, data: notes });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -123,10 +157,13 @@ const getMyNotes = async (req, res) => {
 const addNote = async (req, res) => {
   try {
     const { patientId, note, category, isPrivate } = req.body;
-    const patient = await User.findOne({ _id: patientId, assignedDoctor: req.user.id });
+    const patient = await User.findOne({ _id: patientId, assignedDoctor: req.user.id, role: { $in: patientRoles } }).lean();
     if (!patient) return res.status(404).json({ success: false, message: 'Patient not assigned to you' });
     const created = await ClinicalNote.create({ doctor: req.user.id, patient: patientId, note, category, isPrivate });
     await created.populate('patient','name email');
+
+    emitDashboardEvent('note.created', { noteId: created._id, doctorId: req.user.id, patientId });
+
     res.status(201).json({ success: true, data: created });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -136,6 +173,9 @@ const updateNote = async (req, res) => {
   try {
     const n = await ClinicalNote.findOneAndUpdate({ _id: req.params.id, doctor: req.user.id }, req.body, { new: true });
     if (!n) return res.status(404).json({ success: false, message: 'Note not found' });
+
+    emitDashboardEvent('note.updated', { noteId: n._id, doctorId: req.user.id });
+
     res.json({ success: true, data: n });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -145,6 +185,9 @@ const deleteNote = async (req, res) => {
   try {
     const n = await ClinicalNote.findOneAndDelete({ _id: req.params.id, doctor: req.user.id });
     if (!n) return res.status(404).json({ success: false, message: 'Note not found' });
+
+    emitDashboardEvent('note.deleted', { noteId: req.params.id, doctorId: req.user.id });
+
     res.json({ success: true, message: 'Note deleted' });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -230,6 +273,12 @@ const generatePrescription = async (req, res) => {
       }
     }
 
+    // 🔴 Real-time: notify dashboard of new prescription
+    emitDashboardEvent('prescription.created', {
+      prescriptionId: rx._id,
+      userId: patientId,
+    });
+
     res.status(201).json({
       success: true,
       message: `Prescription generated and ${createdMeds.length} medications added to patient profile.`,
@@ -245,27 +294,57 @@ const generatePrescription = async (req, res) => {
 // @access  Private (doctor)
 const getDoctorAnalytics = async (req, res) => {
   try {
-    const patients = await User.find({ assignedDoctor: req.user.id, role: 'patient' }).select('name email');
+    const patients = await User.find({ assignedDoctor: req.user.id, role: { $in: patientRoles } }).select('name email').lean();
     const patientIds = patients.map(p => p._id);
 
-    const patientStats = await Promise.all(patients.map(async p => {
-      const meds = await Medication.countDocuments({ user: p._id, isActive: true });
-      const doses = await Dose.countDocuments({ user: p._id });
-      const taken = await Dose.countDocuments({ user: p._id, status: 'taken' });
-      const missed = await Dose.countDocuments({ user: p._id, status: 'missed' });
-      const rate = doses > 0 ? Math.round((taken / doses) * 100) : 100;
+    if (patientIds.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          patientStats: [],
+          summary: { totalPatients: 0, lowAdherenceCount: 0, averageAdherence: 100 },
+          recentMissed: []
+        }
+      });
+    }
 
+    const [medCounts, doseStats] = await Promise.all([
+      Medication.aggregate([
+        { $match: { user: { $in: patientIds }, isActive: true } },
+        { $group: { _id: '$user', count: { $sum: 1 } } }
+      ]),
+      Dose.aggregate([
+        { $match: { user: { $in: patientIds } } },
+        {
+          $group: {
+            _id: '$user',
+            total: { $sum: 1 },
+            taken: { $sum: { $cond: [{ $eq: ['$status', 'taken'] }, 1, 0] } },
+            missed: { $sum: { $cond: [{ $eq: ['$status', 'missed'] }, 1, 0] } }
+          }
+        }
+      ])
+    ]);
+
+    const medMap = Object.fromEntries(medCounts.map(m => [m._id.toString(), m.count]));
+    const doseMap = Object.fromEntries(doseStats.map(d => [d._id.toString(), d]));
+
+    const patientStats = patients.map(p => {
+      const pIdStr = p._id.toString();
+      const meds = medMap[pIdStr] || 0;
+      const dStat = doseMap[pIdStr] || { total: 0, taken: 0, missed: 0 };
+      const rate = dStat.total > 0 ? Math.round((dStat.taken / dStat.total) * 100) : 100;
       return {
         patientId: p._id,
         name: p.name,
         email: p.email,
         activeMeds: meds,
-        totalDoses: doses,
-        takenDoses: taken,
-        missedDoses: missed,
+        totalDoses: dStat.total,
+        takenDoses: dStat.taken,
+        missedDoses: dStat.missed,
         adherenceRate: rate,
       };
-    }));
+    });
 
     const totalPatients = patientStats.length;
     const lowAdherenceCount = patientStats.filter(p => p.adherenceRate < 80 && p.totalDoses > 0).length;
@@ -283,7 +362,8 @@ const getDoctorAnalytics = async (req, res) => {
       .populate('user', 'name')
       .populate('medication', 'name dosage dosageUnit')
       .sort('-scheduledTime')
-      .limit(10);
+      .limit(10)
+      .lean();
 
     res.json({
       success: true,
@@ -315,7 +395,8 @@ const getDoctorFollowups = async (req, res) => {
   try {
     const appointments = await Appointment.find({ doctor: req.user.id })
       .populate('user', 'name email phone')
-      .sort('appointmentDate');
+      .sort('appointmentDate')
+      .lean();
 
     res.json({
       success: true,
@@ -333,7 +414,7 @@ const getDoctorFollowups = async (req, res) => {
 const checkDrugInteractions = async (req, res) => {
   try {
     const { patientId, medicines } = req.body;
-    const patient = await User.findById(patientId);
+    const patient = await User.findById(patientId).lean();
     const allergies = patient?.allergies || [];
     const warnings = [];
 
@@ -368,7 +449,8 @@ const getDoctorAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({ doctor: req.user.id })
       .populate('user', 'name email phone avatar bloodGroup')
-      .sort({ appointmentDate: 1 });
+      .sort({ appointmentDate: 1 })
+      .lean();
     res.json({ success: true, count: appointments.length, data: appointments });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -385,6 +467,14 @@ const updateAppointmentStatus = async (req, res) => {
       { new: true }
     );
     if (!apt) return res.status(404).json({ success: false, message: 'Appointment not found' });
+
+    // 🔴 Real-time: update dashboard counters
+    emitDashboardEvent('appointment.updated', {
+      appointmentId: apt._id,
+      status: apt.status,
+      userId: apt.user,
+    });
+
     res.json({ success: true, data: apt });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -397,7 +487,7 @@ const aiClinicalAssistant = async (req, res) => {
     const { prompt, patientId, task } = req.body;
     let context = '';
     if (patientId) {
-      const patient = await User.findById(patientId).select('name bloodGroup allergies conditions height weight dateOfBirth');
+      const patient = await User.findById(patientId).select('name bloodGroup allergies conditions height weight dateOfBirth').lean();
       if (patient) {
         context = `Patient Info: Name ${patient.name}, Blood Group ${patient.bloodGroup || 'N/A'}, Allergies: ${(patient.allergies || []).join(', ') || 'None'}, Conditions: ${(patient.conditions || []).join(', ') || 'None'}. `;
       }
@@ -419,7 +509,7 @@ const aiClinicalAssistant = async (req, res) => {
 // GET /api/doctor/emergency-patients
 const getEmergencyPatients = async (req, res) => {
   try {
-    const patients = await User.find({ assignedDoctor: req.user.id, role: 'patient' }).select('-password');
+    const patients = await User.find({ assignedDoctor: req.user.id, role: { $in: patientRoles } }).select('-password').lean();
     const emergencyList = patients.filter(p => (p.allergies && p.allergies.length > 0) || (p.conditions && p.conditions.length > 0));
     res.json({ success: true, count: emergencyList.length, data: emergencyList });
   } catch (error) {
@@ -430,7 +520,7 @@ const getEmergencyPatients = async (req, res) => {
 // GET /api/doctor/performance
 const getDoctorPerformance = async (req, res) => {
   try {
-    const patientsCount = await User.countDocuments({ assignedDoctor: req.user.id, role: 'patient' });
+    const patientsCount = await User.countDocuments({ assignedDoctor: req.user.id, role: { $in: patientRoles } });
     const appointmentsCount = await Appointment.countDocuments({ doctor: req.user.id });
     const prescriptionsCount = await Prescription.countDocuments({ doctor: req.user.id });
     const notesCount = await ClinicalNote.countDocuments({ doctor: req.user.id });
@@ -459,6 +549,12 @@ const updateDoctorProfile = async (req, res) => {
     const update = {};
     allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });
     const updated = await User.findByIdAndUpdate(req.user.id, update, { new: true });
+    
+    if (updated) {
+      invalidateCachedUser(req.user.id.toString());
+      emitDashboardEvent('doctor.updated', { doctorId: req.user.id });
+    }
+
     res.json({ success: true, user: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

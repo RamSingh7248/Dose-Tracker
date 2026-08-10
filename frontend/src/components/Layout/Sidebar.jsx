@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -36,54 +36,70 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => { logout(); navigate('/'); };
-
-  const handleSwitchPortal = async (targetRole) => {
-    try {
-      if (targetRole === 'doctor') {
-        if (user?.role === 'ROLE_DOCTOR' || user?.role === 'doctor') {
-          navigate('/doctor/dashboard');
-        } else {
-          await login('doctor@dosetracker.com', 'DoctorPassword123!');
-          toast.success('Switched to Doctor Portal 🩺');
-          navigate('/doctor/dashboard');
-        }
-      }
-    } catch {
-      toast.error('Portal switch failed');
+  // Lock body scroll when drawer is open on mobile
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.classList.add('sidebar-open');
+    } else {
+      document.body.classList.remove('sidebar-open');
     }
-  };
+    return () => document.body.classList.remove('sidebar-open');
+  }, [mobileOpen]);
+
+  const handleClose = () => setMobileOpen(false);
+  const handleLogout = () => { logout(); navigate('/'); };
 
   return (
     <>
-      {/* Mobile Toggle */}
+      {/* Mobile & Tablet Drawer Toggle */}
       <button
-        className="fixed top-4 left-4 z-200 p-2 rounded-lg md:hidden"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
-        onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label={mobileOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+        aria-expanded={mobileOpen}
+        aria-controls="main-sidebar"
+        className="fixed top-4 left-4 z-[210] p-3 rounded-xl lg:hidden shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          minWidth: 44,
+          minHeight: 44,
+        }}
+        onClick={() => setMobileOpen(v => !v)}
       >
-        {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+        {mobileOpen
+          ? <X size={20} color="var(--accent-purple)" />
+          : <Menu size={20} color="var(--text-primary)" />
+        }
       </button>
 
-      {/* Overlay */}
+      {/* Overlay Backdrop */}
       {mobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-90 md:hidden" onClick={() => setMobileOpen(false)} />
+        <div
+          className="sidebar-backdrop lg:hidden"
+          onClick={handleClose}
+          aria-hidden="true"
+        />
       )}
 
       {/* Sidebar */}
-      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
+      <aside
+        id="main-sidebar"
+        role="navigation"
+        aria-label="Main navigation"
+        className={`sidebar ${mobileOpen ? 'open' : ''}`}
+      >
         {/* Logo */}
-        <div style={{ padding: '24px 20px 20px' }}>
+        <div style={{ padding: '20px 16px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 10,
+              width: 34, height: 34, borderRadius: 9,
               background: 'var(--gradient-primary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
             }}>
-              <Activity size={20} color="white" />
+              <Activity size={18} color="white" />
             </div>
-            <div>
-              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 DoseTracker
               </div>
               <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>Patient Portal</div>
@@ -91,20 +107,20 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <div style={{ height: 1, background: 'var(--border-color)', margin: '0 16px' }} />
+        <div style={{ height: 1, background: 'var(--border-color)', margin: '0 14px' }} />
 
         {/* User Profile Summary */}
-        <div style={{ padding: '16px 20px 14px' }}>
+        <div style={{ padding: '14px 16px 12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: '50%',
+              width: 34, height: 34, borderRadius: '50%',
               background: 'var(--gradient-primary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0
+              fontSize: 13, fontWeight: 700, color: 'white', flexShrink: 0,
             }}>
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
-            <div style={{ overflow: 'hidden' }}>
+            <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user?.name || 'User'}
               </div>
@@ -115,33 +131,33 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <div style={{ height: 1, background: 'var(--border-color)', margin: '0 16px 8px' }} />
+        <div style={{ height: 1, background: 'var(--border-color)', margin: '0 14px 6px' }} />
 
         {/* Nav */}
-        <nav style={{ flex: 1, overflowY: 'auto', paddingBottom: 8 }}>
+        <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 8 }}>
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              onClick={() => setMobileOpen(false)}
+              onClick={handleClose}
             >
-              <Icon size={18} />
-              {label}
+              <Icon size={17} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
             </NavLink>
           ))}
         </nav>
 
         {/* Logout */}
-        <div style={{ padding: '12px 8px 20px' }}>
-          <div style={{ height: 1, background: 'var(--border-color)', margin: '0 8px 12px' }} />
+        <div style={{ padding: '10px 8px 18px' }}>
+          <div style={{ height: 1, background: 'var(--border-color)', margin: '0 6px 10px' }} />
           <button
             onClick={handleLogout}
             className="sidebar-link"
             style={{ width: '100%', cursor: 'pointer', background: 'none', border: 'none', color: 'var(--accent-rose)' }}
           >
-            <LogOut size={18} />
-            Sign Out
+            <LogOut size={17} style={{ flexShrink: 0 }} />
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>

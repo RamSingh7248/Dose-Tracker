@@ -1,6 +1,7 @@
 const HealthDocument = require('../models/HealthDocument');
 const crypto = require('crypto');
-const path = require('path');
+const path   = require('path');
+const { emitDashboardEvent } = require('../services/socketEmitter');
 
 // @desc    Get all documents
 // @route   GET /api/documents
@@ -39,7 +40,7 @@ const getDocuments = async (req, res) => {
       else if (req.query.sortBy === 'date_desc') sortOption = '-createdAt';
     }
 
-    const documents = await HealthDocument.find(filter).sort(sortOption);
+    const documents = await HealthDocument.find(filter).sort(sortOption).lean();
     res.json({ success: true, count: documents.length, data: documents });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -68,6 +69,9 @@ const uploadDocument = async (req, res) => {
       notes: req.body.notes || '',
     });
 
+    // 🔴 Real-time dashboard update
+    emitDashboardEvent('report.uploaded', { documentId: doc._id, userId: req.user.id, type: doc.type });
+
     res.status(201).json({ success: true, data: doc });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -94,6 +98,10 @@ const updateDocument = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
+
+    // 🔴 Real-time: update dashboard counters
+    emitDashboardEvent('report.updated', { documentId: doc._id, userId: req.user.id, type: doc.type });
+
     res.json({ success: true, data: doc });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -109,14 +117,14 @@ const deleteDocument = async (req, res) => {
     if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
 
     if (doc.isDeleted) {
-      // Hard delete
       await HealthDocument.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+      emitDashboardEvent('report.deleted', { documentId: req.params.id, userId: req.user.id });
       res.json({ success: true, message: 'Document permanently deleted' });
     } else {
-      // Soft delete
       doc.isDeleted = true;
       doc.deletedAt = new Date();
       await doc.save();
+      emitDashboardEvent('report.deleted', { documentId: req.params.id, userId: req.user.id });
       res.json({ success: true, message: 'Document moved to Trash' });
     }
   } catch (error) {
@@ -135,6 +143,7 @@ const restoreDocument = async (req, res) => {
       { new: true }
     );
     if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
+    emitDashboardEvent('report.uploaded', { documentId: doc._id, userId: req.user.id, type: doc.type });
     res.json({ success: true, data: doc, message: 'Document restored successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
