@@ -116,6 +116,9 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<PublicRoute><AuthPage /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><AuthPage initialMode="register" /></PublicRoute>} />
+        <Route path="/about" element={<PublicRoute><AuthPage initialMode="about" /></PublicRoute>} />
+        <Route path="/contact" element={<PublicRoute><AuthPage initialMode="contact" /></PublicRoute>} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
@@ -124,8 +127,14 @@ function AppRoutes() {
 
         {/* Patient routes */}
         <Route path="/dashboard"    element={<PatientRoute><AppLayout><Dashboard /></AppLayout></PatientRoute>} />
+        <Route path="/profile"      element={<PatientRoute><AppLayout><Settings /></AppLayout></PatientRoute>} />
+        <Route path="/medicines"    element={<PatientRoute><AppLayout><Medications /></AppLayout></PatientRoute>} />
         <Route path="/medications"  element={<PatientRoute><AppLayout><Medications /></AppLayout></PatientRoute>} />
+        <Route path="/doses/today"  element={<PatientRoute><AppLayout><DoseLog /></AppLayout></PatientRoute>} />
+        <Route path="/doses/history"element={<PatientRoute><AppLayout><Adherence /></AppLayout></PatientRoute>} />
         <Route path="/dose-log"     element={<PatientRoute><AppLayout><DoseLog /></AppLayout></PatientRoute>} />
+        <Route path="/prescriptions"element={<PatientRoute><AppLayout><PrescriptionScanner /></AppLayout></PatientRoute>} />
+        <Route path="/doctors"      element={<PatientRoute><AppLayout><Appointments /></AppLayout></PatientRoute>} />
         <Route path="/members"      element={<PatientRoute><AppLayout><Members /></AppLayout></PatientRoute>} />
         <Route path="/health-log"   element={<PatientRoute><AppLayout><HealthLog /></AppLayout></PatientRoute>} />
         <Route path="/refill-alerts"element={<PatientRoute><AppLayout><RefillAlerts /></AppLayout></PatientRoute>} />
@@ -144,10 +153,12 @@ function AppRoutes() {
 
         {/* Doctor routes */}
         <Route path="/doctor/dashboard" element={<DoctorRoute><DoctorLayout><DoctorDashboard /></DoctorLayout></DoctorRoute>} />
+        <Route path="/doctor/profile"   element={<DoctorRoute><DoctorLayout><DoctorSettings /></DoctorLayout></DoctorRoute>} />
         <Route path="/doctor/patients"  element={<DoctorRoute><DoctorLayout><MyPatients /></DoctorLayout></DoctorRoute>} />
         <Route path="/doctor/patients/:id" element={<DoctorRoute><DoctorLayout><PatientDetail /></DoctorLayout></DoctorRoute>} />
         <Route path="/doctor/notes"     element={<DoctorRoute><DoctorLayout><ClinicalNotes /></DoctorLayout></DoctorRoute>} />
         <Route path="/doctor/prescriptions" element={<DoctorRoute><DoctorLayout><PrescriptionGenerator /></DoctorLayout></DoctorRoute>} />
+        <Route path="/doctor/medicines" element={<DoctorRoute><DoctorLayout><PrescriptionGenerator /></DoctorLayout></DoctorRoute>} />
         <Route path="/doctor/analytics"     element={<DoctorRoute><DoctorLayout><AdherenceAnalytics /></DoctorLayout></DoctorRoute>} />
         <Route path="/doctor/followups"     element={<DoctorRoute><DoctorLayout><FollowUpDashboard /></DoctorLayout></DoctorRoute>} />
         <Route path="/doctor/appointments"  element={<DoctorRoute><DoctorLayout><DoctorAppointments /></DoctorLayout></DoctorRoute>} />
@@ -165,6 +176,8 @@ function AppRoutes() {
         <Route path="/admin/dashboard"    element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
         <Route path="/admin/users"        element={<AdminRoute><AdminLayout><UserManagement /></AdminLayout></AdminRoute>} />
         <Route path="/admin/doctors"      element={<AdminRoute><AdminLayout><DoctorManagement /></AdminLayout></AdminRoute>} />
+        <Route path="/admin/patients"     element={<AdminRoute><AdminLayout><UserManagement initialRole="patient" /></AdminLayout></AdminRoute>} />
+        <Route path="/admin/medicines"    element={<AdminRoute><AdminLayout><AdminPrescriptions /></AdminLayout></AdminRoute>} />
         <Route path="/admin/appointments" element={<AdminRoute><AdminLayout><AdminAppointments /></AdminLayout></AdminRoute>} />
         <Route path="/admin/prescriptions"element={<AdminRoute><AdminLayout><AdminPrescriptions /></AdminLayout></AdminRoute>} />
         <Route path="/admin/reports"      element={<AdminRoute><AdminLayout><SystemReports /></AdminLayout></AdminRoute>} />
