@@ -1,140 +1,174 @@
-const Dose       = require('../models/Dose');
-const Medication  = require('../models/Medication');
-const { emitDashboardEvent } = require('../services/socketEmitter');
+const Dose = require('../models/Dose');
+const Medicine = require('../models/Medicine');
+const Medication = require('../models/Medication');
 
-// @desc    Get all doses (with filters)
-// @route   GET /api/doses
+// @desc    Get today's doses for patient
+// @route   GET /api/doses/today
 // @access  Private
-const getDoses = async (req, res) => {
+const getTodayDoses = async (req, res) => {
   try {
-    const filter = { user: req.user.id };
-    if (req.query.medication) filter.medication = req.query.medication;
-    if (req.query.status)     filter.status     = req.query.status;
-    if (req.query.member)     filter.member     = req.query.member;
-    if (req.query.from || req.query.to) {
-      filter.scheduledTime = {};
-      if (req.query.from) filter.scheduledTime.$gte = new Date(req.query.from);
-      if (req.query.to)   filter.scheduledTime.$lte = new Date(req.query.to);
-    }
-    const limit = parseInt(req.query.limit) || 100;
+    const userId = req.user.id;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
-    // .lean() for read-only response — 2-5x faster than full Mongoose Documents
-    const doses = await Dose.find(filter)
-      .populate('medication', 'name dosage dosageUnit icon color')
-      .populate('member', 'name')
-      .sort('-scheduledTime')
-      .limit(limit)
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    let doses = await Dose.find({
+      $or: [{ patientId: userId }, { user: userId }],
+      $or: [
+        { scheduledDate: { $gte: startOfDay, $lte: endOfDay } },
+        { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+      ],
+    })
+      .populate('medicineId', 'name dosage instructions times')
+      .populate('medication', 'name dosage instructions times')
+      .sort('scheduledTime')
       .lean();
+
+    // Auto generate doses for today if none exist yet for active medicines
+    if (doses.length === 0) {
+      const activeMeds = await Medicine.find({
+        $or: [{ patientId: userId }, { user: userId }],
+        status: 'Active',
+      }).lean();
+
+      for (const med of activeMeds) {
+        const times = Array.isArray(med.times) && med.times.length > 0 ? med.times : ['09:00 AM'];
+        for (const timeStr of times) {
+          await Dose.create({
+            patientId: userId,
+            user: userId,
+            medicineId: med._id,
+            medication: med._id,
+            scheduledTime: timeStr,
+            scheduledDate: new Date(),
+            status: 'Scheduled',
+          }).catch(() => {});
+        }
+      }
+
+      doses = await Dose.find({
+        $or: [{ patientId: userId }, { user: userId }],
+        $or: [
+          { scheduledDate: { $gte: startOfDay, $lte: endOfDay } },
+          { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+        ],
+      })
+        .populate('medicineId', 'name dosage instructions times')
+        .populate('medication', 'name dosage instructions times')
+        .sort('scheduledTime')
+        .lean();
+    }
+
     res.json({ success: true, count: doses.length, data: doses });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Log a dose
-// @route   POST /api/doses/log
+// @desc    Get dose history & adherence stats
+// @route   GET /api/doses/history
 // @access  Private
-const logDose = async (req, res) => {
+const getDoseHistory = async (req, res) => {
   try {
-    const { medicationId, status, scheduledTime, notes, sideEffects, pillsTaken } = req.body;
+    const userId = req.user.id;
+    const doses = await Dose.find({
+      $or: [{ patientId: userId }, { user: userId }],
+    })
+      .populate('medicineId', 'name dosage')
+      .populate('medication', 'name dosage')
+      .sort('-createdAt')
+      .lean();
 
-    const med = await Medication.findOne({ _id: medicationId, user: req.user.id }).lean();
-    if (!med) return res.status(404).json({ success: false, message: 'Medication not found' });
+    const total = doses.length;
+    const taken = doses.filter((d) => d.status === 'Taken' || d.status === 'taken').length;
+    const skipped = doses.filter((d) => d.status === 'Skipped' || d.status === 'skipped').length;
+    const missed = doses.filter((d) => d.status === 'Missed' || d.status === 'missed').length;
+    const adherence = total > 0 ? Math.round((taken / total) * 100) : 100;
 
-    const dose = await Dose.create({
-      user:         req.user.id,
-      medication:   medicationId,
-      member:       med.member || null,
-      status:       status || 'taken',
-      scheduledTime: scheduledTime || new Date(),
-      takenAt:      status === 'taken' ? new Date() : null,
-      notes, sideEffects,
-      pillsTaken:   pillsTaken || med.pillsPerDose || 1,
-    });
-
-    // Deduct pills if taken
-    if (status === 'taken' && med.pillsRemaining > 0) {
-      await Medication.findByIdAndUpdate(medicationId, {
-        $inc: { pillsRemaining: -(pillsTaken || med.pillsPerDose || 1) },
-      });
-    }
-
-    await dose.populate('medication', 'name dosage icon');
-
-    // 🔴 Real-time dashboard update
-    emitDashboardEvent(status === 'missed' ? 'dose.missed' : 'dose.logged', {
-      doseId:   dose._id,
-      status:   dose.status,
-      userId:   req.user.id,
-      medName:  med.name,
-    });
-
-    res.status(201).json({ success: true, data: dose });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Get dose stats
-// @route   GET /api/doses/stats
-// @access  Private
-const getDoseStats = async (req, res) => {
-  try {
-    const days = parseInt(req.query.days) || 30;
-    const from = new Date();
-    from.setDate(from.getDate() - days);
-
-    // .lean() — we only need plain objects for counting
-    const doses = await Dose.find(
-      { user: req.user.id, scheduledTime: { $gte: from } },
-      { status: 1 } // projection: only fetch the 'status' field
-    ).lean();
-
-    const total   = doses.length;
-    const taken   = doses.filter(d => d.status === 'taken').length;
-    const missed  = doses.filter(d => d.status === 'missed').length;
-    const skipped = doses.filter(d => d.status === 'skipped').length;
-
-    // Cache stats for 5 minutes — data changes only when doses are logged
-    res.set('Cache-Control', 'private, max-age=300');
     res.json({
       success: true,
-      data: {
-        total, taken, missed, skipped,
-        adherenceRate: total > 0 ? Math.round((taken / total) * 100) : 0,
-      },
+      stats: { total, taken, skipped, missed, adherence },
+      data: doses,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Delete a logged dose (undo)
-// @route   DELETE /api/doses/:id
+// @desc    Mark dose as Taken
+// @route   PUT /api/doses/:id/taken
 // @access  Private
-const deleteDose = async (req, res) => {
+const markDoseTaken = async (req, res) => {
   try {
-    const dose = await Dose.findOne({ _id: req.params.id, user: req.user.id }).lean();
-    if (!dose) return res.status(404).json({ success: false, message: 'Dose log not found' });
-
-    if (dose.status === 'taken') {
-      const med = await Medication.findById(dose.medication).select('_id').lean();
-      if (med) {
-        await Medication.findByIdAndUpdate(dose.medication, {
-          $inc: { pillsRemaining: dose.pillsTaken },
-        });
-      }
-    }
-
-    await Dose.findByIdAndDelete(req.params.id);
-
-    // 🔴 Real-time
-    emitDashboardEvent('dose.deleted', { doseId: req.params.id, userId: req.user.id });
-
-    res.json({ success: true, message: 'Dose log deleted successfully' });
+    const dose = await Dose.findOneAndUpdate(
+      { _id: req.params.id, $or: [{ patientId: req.user.id }, { user: req.user.id }] },
+      { status: 'Taken', takenAt: new Date() },
+      { new: true }
+    );
+    if (!dose) return res.status(404).json({ success: false, message: 'Dose record not found' });
+    res.json({ success: true, data: dose });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-module.exports = { getDoses, logDose, getDoseStats, deleteDose };
+// @desc    Mark dose as Skipped
+// @route   PUT /api/doses/:id/skipped
+// @access  Private
+const markDoseSkipped = async (req, res) => {
+  try {
+    const dose = await Dose.findOneAndUpdate(
+      { _id: req.params.id, $or: [{ patientId: req.user.id }, { user: req.user.id }] },
+      { status: 'Skipped' },
+      { new: true }
+    );
+    if (!dose) return res.status(404).json({ success: false, message: 'Dose record not found' });
+    res.json({ success: true, data: dose });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Doctor / Admin get patient dose history
+// @route   GET /api/doses/patient/:patientId
+// @access  Private (Doctor/Admin)
+const getPatientDoseHistory = async (req, res) => {
+  try {
+    const patientId = req.params.patientId;
+    const doses = await Dose.find({
+      $or: [{ patientId }, { user: patientId }],
+    })
+      .populate('medicineId', 'name dosage')
+      .populate('medication', 'name dosage')
+      .sort('-createdAt')
+      .lean();
+
+    const total = doses.length;
+    const taken = doses.filter((d) => d.status === 'Taken' || d.status === 'taken').length;
+    const adherence = total > 0 ? Math.round((taken / total) * 100) : 100;
+
+    res.json({
+      success: true,
+      stats: { total, taken, adherence },
+      data: doses,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Generic get all doses handler for backward compatibility
+const getDoses = async (req, res) => {
+  return getDoseHistory(req, res);
+};
+
+module.exports = {
+  getTodayDoses,
+  getDoseHistory,
+  markDoseTaken,
+  markDoseSkipped,
+  getPatientDoseHistory,
+  getDoses,
+};

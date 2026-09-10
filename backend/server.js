@@ -239,6 +239,8 @@ if (process.env.NODE_ENV === 'development') {
 
 // ── Routes ────────────────────────────────────────────────
 app.use('/api/auth',            require('./routes/authRoutes'));
+app.use('/api/users',           require('./routes/userRoutes'));
+app.use('/api/medicines',       require('./routes/medicineRoutes'));
 app.use('/api/medications',     require('./routes/medicationRoutes'));
 app.use('/api/doses',           require('./routes/doseRoutes'));
 app.use('/api/members',         require('./routes/memberRoutes'));

@@ -13,15 +13,19 @@ const {
   getSystemReports,
   getAdminAppointments,
   getAdminPrescriptions,
-  getAdminAuditLogs
+  getAdminAuditLogs,
+  getDoctors,
+  getPatients,
 } = require('../controllers/adminController');
 
-router.use(protect, authorize('ROLE_ADMIN'));
+router.use(protect, authorize('admin', 'ROLE_ADMIN'));
 
 router.get('/stats',     getSystemStats); // legacy
 router.get('/dashboard', getSystemStats); // canonical alias
 router.get('/reports', getSystemReports);
 router.get('/users', getAllUsers);
+router.get('/doctors', getDoctors);
+router.get('/patients', getPatients);
 router.get('/users/:id', getUserDetail);
 router.put('/users/:id/role', updateUserRole);
 router.put('/users/:id/status', updateUserStatus);

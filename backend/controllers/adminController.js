@@ -566,6 +566,16 @@ const getAdminAuditLogs = async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
 
+const getDoctors = async (req, res) => {
+  req.query.role = 'doctor';
+  return getAllUsers(req, res);
+};
+
+const getPatients = async (req, res) => {
+  req.query.role = 'patient';
+  return getAllUsers(req, res);
+};
+
 module.exports = {
   getSystemStats,
   getAllUsers,
@@ -579,4 +589,6 @@ module.exports = {
   getAdminAppointments,
   getAdminPrescriptions,
   getAdminAuditLogs,
+  getDoctors,
+  getPatients,
 };

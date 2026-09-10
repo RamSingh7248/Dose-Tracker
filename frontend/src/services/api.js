@@ -108,7 +108,23 @@ export const authApi = {
   exportData: () => api.get('/auth/export-data'),
 };
 
-// Medications
+// Users
+export const userApi = {
+  getProfile: () => api.get('/users/profile'),
+  updateProfile: (data) => api.put('/users/profile', data),
+  getDoctors: () => api.get('/users/doctors'),
+};
+
+// Medicines
+export const medicineApi = {
+  getAll: (params) => api.get('/medicines', { params }),
+  getOne: (id) => api.get(`/medicines/${id}`),
+  create: (data) => api.post('/medicines', data),
+  update: (id, data) => api.put(`/medicines/${id}`, data),
+  remove: (id) => api.delete(`/medicines/${id}`),
+};
+
+// Medications (Legacy & Extended)
 export const medicationApi = {
   getAll: (params) => api.get('/medications', { params }),
   getOne: (id) => api.get(`/medications/${id}`),
@@ -121,6 +137,11 @@ export const medicationApi = {
 // Doses
 export const doseApi = {
   getAll: (params) => api.get('/doses', { params }),
+  getToday: () => api.get('/doses/today'),
+  getHistory: () => api.get('/doses/history'),
+  markTaken: (id) => api.put(`/doses/${id}/taken`),
+  markSkipped: (id) => api.put(`/doses/${id}/skipped`),
+  getPatientHistory: (patientId) => api.get(`/doses/patient/${patientId}`),
   log: (data) => api.post('/doses/log', data),
   getStats: (params) => api.get('/doses/stats', { params }),
   remove: (id) => api.delete(`/doses/${id}`),

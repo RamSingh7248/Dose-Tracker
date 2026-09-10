@@ -2,27 +2,29 @@ const mongoose = require('mongoose');
 
 const DoseSchema = new mongoose.Schema(
   {
+    patientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true,
+    },
+    medicineId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Medicine',
     },
     medication: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Medication',
-      required: true,
-      index: true,
-    },
-    member: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Member',
-      default: null,
     },
     scheduledTime: {
-      type: Date,
+      type: String,
       required: true,
-      index: true,
+    },
+    scheduledDate: {
+      type: Date,
+      default: Date.now,
     },
     takenAt: {
       type: Date,
@@ -30,19 +32,10 @@ const DoseSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'taken', 'skipped', 'missed'],
-      default: 'pending',
-      index: true,
-    },
-    pillsTaken: {
-      type: Number,
-      default: 1,
+      enum: ['Scheduled', 'Taken', 'Skipped', 'Missed', 'pending', 'taken', 'skipped', 'missed'],
+      default: 'Scheduled',
     },
     notes: {
-      type: String,
-      default: '',
-    },
-    sideEffects: {
       type: String,
       default: '',
     },
@@ -50,9 +43,15 @@ const DoseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// High Performance Compound Indexes
-DoseSchema.index({ user: 1, scheduledTime: -1 });
-DoseSchema.index({ user: 1, status: 1, scheduledTime: -1 });
-DoseSchema.index({ medication: 1, scheduledTime: -1 });
+DoseSchema.pre('save', function (next) {
+  if (!this.patientId && this.user) this.patientId = this.user;
+  if (!this.user && this.patientId) this.user = this.patientId;
+  if (!this.medicineId && this.medication) this.medicineId = this.medication;
+  if (!this.medication && this.medicineId) this.medication = this.medicineId;
+  next();
+});
 
-module.exports = mongoose.model('Dose', DoseSchema);
+DoseSchema.index({ patientId: 1, scheduledDate: -1 });
+DoseSchema.index({ user: 1, scheduledDate: -1 });
+
+module.exports = mongoose.models.Dose || mongoose.model('Dose', DoseSchema);

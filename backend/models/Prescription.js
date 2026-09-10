@@ -2,30 +2,36 @@ const mongoose = require('mongoose');
 
 const ExtractedMedicineSchema = new mongoose.Schema(
   {
-    name:             { type: String, default: '' },
-    dosage:           { type: String, default: '' },
-    frequency:        { type: String, default: '' },
-    duration:         { type: String, default: '' },
-    instructions:     { type: String, default: '' },
-    morning:          { type: Boolean, default: false },
-    afternoon:        { type: Boolean, default: false },
-    night:            { type: Boolean, default: false },
-    foodInstructions: { type: String, enum: ['before_food', 'after_food', 'with_food', 'no_preference', ''], default: 'no_preference' },
+    name: { type: String, default: '' },
+    dosage: { type: String, default: '' },
+    frequency: { type: String, default: '' },
+    duration: { type: String, default: '' },
+    instructions: { type: String, default: '' },
+    morning: { type: Boolean, default: false },
+    afternoon: { type: Boolean, default: false },
+    night: { type: Boolean, default: false },
+    foodInstructions: { type: String, default: 'no_preference' },
   },
   { _id: false }
 );
 
 const PrescriptionSchema = new mongoose.Schema(
   {
-    user: {
+    doctorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
     },
     doctor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null,
+    },
+    patientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
     doctorName: {
       type: String,
@@ -37,20 +43,29 @@ const PrescriptionSchema = new mongoose.Schema(
     },
     fileUrl: {
       type: String,
-      required: [true, 'File URL is required'],
+      default: '',
     },
     fileType: {
       type: String,
-      enum: ['pdf', 'image'],
-      required: true,
+      enum: ['pdf', 'image', 'digital', ''],
+      default: 'digital',
     },
     originalName: {
       type: String,
       default: '',
     },
-    fileSize: {
-      type: Number,
-      default: 0,
+    medicines: [ExtractedMedicineSchema],
+    diagnosis: {
+      type: String,
+      default: '',
+    },
+    instructions: {
+      type: String,
+      default: '',
+    },
+    prescriptionDate: {
+      type: Date,
+      default: Date.now,
     },
     extractedData: {
       medicines: [ExtractedMedicineSchema],
@@ -60,20 +75,28 @@ const PrescriptionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'processing', 'processed', 'failed'],
-      default: 'pending',
+      enum: ['pending', 'processing', 'processed', 'failed', 'active'],
+      default: 'processed',
     },
     notes: {
       type: String,
       default: '',
     },
-    tags: [{ type: String }],
   },
   { timestamps: true }
 );
 
-PrescriptionSchema.index({ user: 1, createdAt: -1 });
-PrescriptionSchema.index({ doctor: 1, createdAt: -1 });
-PrescriptionSchema.index({ status: 1, createdAt: -1 });
+PrescriptionSchema.pre('save', function (next) {
+  if (!this.patientId && this.user) this.patientId = this.user;
+  if (!this.user && this.patientId) this.user = this.patientId;
+  if (!this.doctorId && this.doctor) this.doctorId = this.doctor;
+  if (!this.doctor && this.doctorId) this.doctor = this.doctorId;
+  next();
+});
 
-module.exports = mongoose.model('Prescription', PrescriptionSchema);
+PrescriptionSchema.index({ patientId: 1, createdAt: -1 });
+PrescriptionSchema.index({ user: 1, createdAt: -1 });
+PrescriptionSchema.index({ doctorId: 1, createdAt: -1 });
+PrescriptionSchema.index({ doctor: 1, createdAt: -1 });
+
+module.exports = mongoose.models.Prescription || mongoose.model('Prescription', PrescriptionSchema);
