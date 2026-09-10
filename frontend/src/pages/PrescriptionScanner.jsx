@@ -6,6 +6,18 @@ import toast from 'react-hot-toast';
 
 const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
 
+const createDefaultMedicine = () => ({
+  name: '',
+  dosage: '',
+  frequency: 'once_daily',
+  morning: false,
+  afternoon: false,
+  night: false,
+  duration: '',
+  instructions: '',
+  foodInstructions: 'no_preference'
+});
+
 export default function PrescriptionScanner() {
   const queryClient = useQueryClient();
   const [prescriptions, setPrescriptions] = useState([]);
@@ -17,17 +29,7 @@ export default function PrescriptionScanner() {
   const [uploadForm, setUploadForm] = useState({ doctorName: '', hospitalName: '', notes: '' });
   const [selectedRx, setSelectedRx] = useState(null);
   const [extractForm, setExtractForm] = useState({
-    medicines: [{
-      name: '',
-      dosage: '',
-      frequency: 'once_daily',
-      morning: false,
-      afternoon: false,
-      night: false,
-      duration: '',
-      instructions: '',
-      foodInstructions: 'no_preference'
-    }]
+    medicines: [createDefaultMedicine()]
   });
   const [creating, setCreating] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -38,16 +40,21 @@ export default function PrescriptionScanner() {
     setLoading(true);
     try {
       const res = await prescriptionApi.getAll();
-      setPrescriptions(res.data.data || []);
-    } catch { toast.error('Failed to load prescriptions'); }
-    finally { setLoading(false); }
+      const data = res?.data?.data;
+      setPrescriptions(Array.isArray(data) ? data : []);
+    } catch { 
+      toast.error('Failed to load prescriptions'); 
+      setPrescriptions([]);
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      if (file.type.startsWith('image/')) {
+      if (file.type && file.type.startsWith('image/')) {
         setPreviewUrl(URL.createObjectURL(file));
       } else {
         setPreviewUrl(null);
@@ -62,11 +69,12 @@ export default function PrescriptionScanner() {
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
-      formData.append('doctorName', uploadForm.doctorName);
-      formData.append('hospitalName', uploadForm.hospitalName);
-      formData.append('notes', uploadForm.notes);
+      formData.append('doctorName', uploadForm.doctorName || '');
+      formData.append('hospitalName', uploadForm.hospitalName || '');
+      formData.append('notes', uploadForm.notes || '');
 
       const res = await prescriptionApi.upload(formData);
+      const newRx = res?.data?.data;
       toast.success('Prescription uploaded! Scanning with AI...');
       setShowUpload(false);
       setSelectedFile(null);
@@ -75,13 +83,19 @@ export default function PrescriptionScanner() {
       fetchPrescriptions();
       queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
       
-      // Auto trigger AI scan after successful upload
-      handleAIScan(res.data.data._id);
-    } catch (err) { toast.error(err.response?.data?.message || 'Upload failed'); }
-    finally { setLoading(false); setUploading(false); }
+      if (newRx?._id) {
+        handleAIScan(newRx._id);
+      }
+    } catch (err) { 
+      toast.error(err.response?.data?.message || 'Upload failed'); 
+    } finally { 
+      setLoading(false); 
+      setUploading(false); 
+    }
   };
 
   const handleDelete = async (id) => {
+    if (!id) return;
     if (!confirm('Delete this prescription?')) return;
     try {
       await prescriptionApi.remove(id);
@@ -89,88 +103,83 @@ export default function PrescriptionScanner() {
       if (selectedRx?._id === id) setSelectedRx(null);
       fetchPrescriptions();
       queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
-    } catch { toast.error('Failed to delete'); }
+    } catch { 
+      toast.error('Failed to delete'); 
+    }
   };
 
   const handleAIScan = async (id) => {
+    if (!id) return;
     setScanning(true);
     try {
       const res = await prescriptionApi.extractAI(id);
-      const extractedMeds = res.data.data.extractedData?.medicines || [];
-      if (extractedMeds.length > 0) {
+      const rxData = res?.data?.data;
+      const extractedMeds = rxData?.extractedData?.medicines || [];
+      if (Array.isArray(extractedMeds) && extractedMeds.length > 0) {
         setExtractForm({ medicines: extractedMeds });
-        setSelectedRx(res.data.data);
+        setSelectedRx(rxData);
         toast.success('AI successfully extracted medicine details!');
       } else {
         toast.error('AI could not extract medicines. Opening manual editor.');
-        const found = prescriptions.find(r => r._id === id) || res.data.data;
-        setSelectedRx(found);
+        const found = prescriptions.find(r => r?._id === id) || rxData;
+        if (found) setSelectedRx(found);
+        setExtractForm({ medicines: [createDefaultMedicine()] });
       }
       fetchPrescriptions();
     } catch (err) {
-      console.error(err);
+      console.error('AI Scan Error:', err);
       toast.error(err.response?.data?.message || 'AI scan failed. Opening manual editor.');
-      const found = prescriptions.find(r => r._id === id);
+      const found = prescriptions.find(r => r?._id === id);
       if (found) setSelectedRx(found);
+      setExtractForm({ medicines: [createDefaultMedicine()] });
     } finally {
       setScanning(false);
     }
   };
 
   const addMedicineRow = () => {
-    setExtractForm({
-      ...extractForm,
-      medicines: [...extractForm.medicines, {
-        name: '',
-        dosage: '',
-        frequency: 'once_daily',
-        morning: false,
-        afternoon: false,
-        night: false,
-        duration: '',
-        instructions: '',
-        foodInstructions: 'no_preference'
-      }]
-    });
+    setExtractForm(prev => ({
+      ...prev,
+      medicines: [...(prev.medicines || []), createDefaultMedicine()]
+    }));
   };
 
   const updateMedicine = (i, field, value) => {
-    const meds = [...extractForm.medicines];
-    meds[i][field] = value;
-    setExtractForm({ ...extractForm, medicines: meds });
+    setExtractForm(prev => {
+      const meds = (prev.medicines || []).map((item, idx) => {
+        if (idx === i) {
+          return { ...item, [field]: value };
+        }
+        return item;
+      });
+      return { ...prev, medicines: meds };
+    });
   };
 
   const removeMedicine = (i) => {
-    setExtractForm({ ...extractForm, medicines: extractForm.medicines.filter((_, idx) => idx !== i) });
+    setExtractForm(prev => ({
+      ...prev,
+      medicines: (prev.medicines || []).filter((_, idx) => idx !== i)
+    }));
   };
 
   const handleSaveAndCreate = async () => {
-    const valid = extractForm.medicines.filter(m => m.name.trim());
+    if (!selectedRx?._id) return toast.error('No prescription selected');
+    const valid = (extractForm.medicines || []).filter(m => m && m.name && m.name.trim());
     if (valid.length === 0) return toast.error('Add at least one medicine name');
     setCreating(true);
     try {
-      // Save extracted data
       await prescriptionApi.saveExtracted(selectedRx._id, { medicines: valid, confidence: 100 });
-      // Create medications + reminders
       const res = await prescriptionApi.createMedications(selectedRx._id, { medicines: valid });
-      toast.success(res.data.message || 'Medications created with reminders!');
+      toast.success(res?.data?.message || 'Medications created with reminders!');
       setSelectedRx(null);
-      setExtractForm({
-        medicines: [{
-          name: '',
-          dosage: '',
-          frequency: 'once_daily',
-          morning: false,
-          afternoon: false,
-          night: false,
-          duration: '',
-          instructions: '',
-          foodInstructions: 'no_preference'
-        }]
-      });
+      setExtractForm({ medicines: [createDefaultMedicine()] });
       fetchPrescriptions();
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to create medications'); }
-    finally { setCreating(false); }
+    } catch (err) { 
+      toast.error(err.response?.data?.message || 'Failed to create medications'); 
+    } finally { 
+      setCreating(false); 
+    }
   };
 
   if (loading && !scanning) return (
@@ -179,6 +188,8 @@ export default function PrescriptionScanner() {
       <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading prescriptions...</p>
     </div>
   );
+
+  const safeMedicines = Array.isArray(extractForm.medicines) ? extractForm.medicines : [createDefaultMedicine()];
 
   return (
     <div className="animate-fade-in-up">
@@ -218,9 +229,9 @@ export default function PrescriptionScanner() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: selectedRx.fileType === 'image' ? '320px 1fr' : '1fr', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: selectedRx.fileType === 'image' && selectedRx.fileUrl ? '320px 1fr' : '1fr', gap: 20 }}>
             {/* Preview */}
-            {selectedRx.fileType === 'image' && (
+            {selectedRx.fileType === 'image' && selectedRx.fileUrl && (
               <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
                 <img src={selectedRx.fileUrl} alt="Prescription" style={{ width: '100%', display: 'block' }} />
               </div>
@@ -231,11 +242,11 @@ export default function PrescriptionScanner() {
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>Verify the AI extracted details. Edit anything if needed before confirming to schedule reminders.</p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {extractForm.medicines.map((med, i) => (
+                {safeMedicines.map((med, i) => (
                   <div key={i} style={{ padding: 14, borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-purple)' }}>Medicine {i + 1}</span>
-                      {extractForm.medicines.length > 1 && (
+                      {safeMedicines.length > 1 && (
                         <button onClick={() => removeMedicine(i)} style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: 12 }}>Remove</button>
                       )}
                     </div>
@@ -244,15 +255,15 @@ export default function PrescriptionScanner() {
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
                       <div>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Medicine Name</label>
-                        <input className="input-field" placeholder="Name (e.g. Paracetamol) *" value={med.name} onChange={e => updateMedicine(i, 'name', e.target.value)} style={{ fontSize: 13 }} />
+                        <input className="input-field" placeholder="Name (e.g. Paracetamol) *" value={med?.name || ''} onChange={e => updateMedicine(i, 'name', e.target.value)} style={{ fontSize: 13 }} />
                       </div>
                       <div>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Dosage</label>
-                        <input className="input-field" placeholder="Dosage (e.g. 500mg)" value={med.dosage} onChange={e => updateMedicine(i, 'dosage', e.target.value)} style={{ fontSize: 13 }} />
+                        <input className="input-field" placeholder="Dosage (e.g. 500mg)" value={med?.dosage || ''} onChange={e => updateMedicine(i, 'dosage', e.target.value)} style={{ fontSize: 13 }} />
                       </div>
                       <div>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Frequency</label>
-                        <select className="input-field" value={med.frequency} onChange={e => updateMedicine(i, 'frequency', e.target.value)} style={{ fontSize: 13 }}>
+                        <select className="input-field" value={med?.frequency || 'once_daily'} onChange={e => updateMedicine(i, 'frequency', e.target.value)} style={{ fontSize: 13 }}>
                           <option value="once_daily">Once daily</option>
                           <option value="twice_daily">Twice daily</option>
                           <option value="three_times_daily">Three times daily</option>
@@ -268,15 +279,15 @@ export default function PrescriptionScanner() {
                     <div style={{ display: 'flex', gap: 16, margin: '10px 0', alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Schedule:</span>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                        <input type="checkbox" checked={!!med.morning} onChange={e => updateMedicine(i, 'morning', e.target.checked)} />
+                        <input type="checkbox" checked={!!med?.morning} onChange={e => updateMedicine(i, 'morning', e.target.checked)} />
                         Morning (8:00 AM)
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                        <input type="checkbox" checked={!!med.afternoon} onChange={e => updateMedicine(i, 'afternoon', e.target.checked)} />
+                        <input type="checkbox" checked={!!med?.afternoon} onChange={e => updateMedicine(i, 'afternoon', e.target.checked)} />
                         Afternoon (2:00 PM)
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                        <input type="checkbox" checked={!!med.night} onChange={e => updateMedicine(i, 'night', e.target.checked)} />
+                        <input type="checkbox" checked={!!med?.night} onChange={e => updateMedicine(i, 'night', e.target.checked)} />
                         Night (8:00 PM)
                       </label>
                     </div>
@@ -285,11 +296,11 @@ export default function PrescriptionScanner() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 8 }}>
                       <div>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Duration</label>
-                        <input className="input-field" placeholder="Duration (e.g. 5 days)" value={med.duration} onChange={e => updateMedicine(i, 'duration', e.target.value)} style={{ fontSize: 13 }} />
+                        <input className="input-field" placeholder="Duration (e.g. 5 days)" value={med?.duration || ''} onChange={e => updateMedicine(i, 'duration', e.target.value)} style={{ fontSize: 13 }} />
                       </div>
                       <div>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Food instructions</label>
-                        <select className="input-field" value={med.foodInstructions} onChange={e => updateMedicine(i, 'foodInstructions', e.target.value)} style={{ fontSize: 13 }}>
+                        <select className="input-field" value={med?.foodInstructions || 'no_preference'} onChange={e => updateMedicine(i, 'foodInstructions', e.target.value)} style={{ fontSize: 13 }}>
                           <option value="no_preference">No preference</option>
                           <option value="before_food">Before food</option>
                           <option value="after_food">After food</option>
@@ -298,7 +309,7 @@ export default function PrescriptionScanner() {
                       </div>
                       <div>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Additional instructions</label>
-                        <input className="input-field" placeholder="Instructions (e.g. Take with water)" value={med.instructions} onChange={e => updateMedicine(i, 'instructions', e.target.value)} style={{ fontSize: 13 }} />
+                        <input className="input-field" placeholder="Instructions (e.g. Take with water)" value={med?.instructions || ''} onChange={e => updateMedicine(i, 'instructions', e.target.value)} style={{ fontSize: 13 }} />
                       </div>
                     </div>
                   </div>
@@ -324,8 +335,8 @@ export default function PrescriptionScanner() {
         </div>
       ) : !scanning && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
-          {prescriptions.map(rx => (
-            <div key={rx._id} className="glass-card" style={{ padding: 20 }}>
+          {prescriptions.filter(Boolean).map(rx => (
+            <div key={rx._id || Math.random()} className="glass-card" style={{ padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: rx.fileType === 'image' ? 'rgba(6,182,212,0.12)' : 'rgba(244,63,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
                   {rx.fileType === 'image' ? '🖼️' : '📄'}
@@ -333,9 +344,9 @@ export default function PrescriptionScanner() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h4 style={{ fontSize: 15, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rx.originalName || 'Prescription'}</h4>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, fontSize: 12, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                    <span className={`badge ${rx.status === 'processed' ? 'badge-green' : rx.status === 'failed' ? 'badge-red' : 'badge-amber'}`}>{rx.status}</span>
+                    <span className={`badge ${rx.status === 'processed' ? 'badge-green' : rx.status === 'failed' ? 'badge-red' : 'badge-amber'}`}>{rx.status || 'pending'}</span>
                     {rx.doctorName && <span>👨‍⚕️ Dr. {rx.doctorName}</span>}
-                    <span>{new Date(rx.createdAt).toLocaleDateString()}</span>
+                    {rx.createdAt && <span>{new Date(rx.createdAt).toLocaleDateString()}</span>}
                   </div>
                   {rx.extractedData?.medicines?.length > 0 && (
                     <div style={{ marginTop: 8 }}>
@@ -350,20 +361,27 @@ export default function PrescriptionScanner() {
                     <button className="btn-primary" style={{ padding: '5px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => handleAIScan(rx._id)}>
                       <Sparkles size={12} /> Scan with AI
                     </button>
-                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: 12 }} onClick={() => setSelectedRx(rx)}>
+                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: 12 }} onClick={() => {
+                      setSelectedRx(rx);
+                      setExtractForm({ medicines: [createDefaultMedicine()] });
+                    }}>
                       Manual
                     </button>
                   </>
                 )}
                 {rx.status === 'processed' && (
                   <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => {
-                    setExtractForm({ medicines: rx.extractedData.medicines });
+                    const extractedMeds = rx.extractedData?.medicines;
+                    const meds = Array.isArray(extractedMeds) && extractedMeds.length > 0 ? extractedMeds : [createDefaultMedicine()];
+                    setExtractForm({ medicines: meds });
                     setSelectedRx(rx);
                   }}>
                     View/Edit
                   </button>
                 )}
-                <a href={rx.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ padding: '5px 12px', fontSize: 12 }}>View File</a>
+                {rx.fileUrl ? (
+                  <a href={rx.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ padding: '5px 12px', fontSize: 12 }}>View File</a>
+                ) : null}
                 <button className="btn-danger" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => handleDelete(rx._id)}>
                   <Trash2 size={12} />
                 </button>
@@ -422,3 +440,4 @@ export default function PrescriptionScanner() {
     </div>
   );
 }
+
