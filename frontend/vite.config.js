@@ -29,38 +29,49 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        // Granular manual chunks — prevents framer-motion / recharts from
-        // landing in the main bundle that users see on first load.
+        // Granular manual chunks — strictly match package directories
+        // to prevent React runtime from being fragmented across chunks.
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
 
-          // Core React runtime — always cached after first load
-          if (id.includes('/react-dom/') || id.includes('/react/'))
+          // Core React runtime (must strictly match /node_modules/react/ or /node_modules/react-dom/)
+          if (
+            id.includes('/node_modules/react/') ||
+            id.includes('/node_modules/react-dom/') ||
+            id.includes('/node_modules/scheduler/')
+          ) {
             return 'react-vendor';
+          }
 
-          // Routing — small, loaded immediately
-          if (id.includes('react-router'))
+          // Routing
+          if (id.includes('/node_modules/react-router')) {
             return 'router-vendor';
-
-          // Heavy chart library — only Dashboard & Adherence pages use it
-          if (id.includes('recharts') || id.includes('d3-'))
-            return 'charts-vendor';
-
-          // Heavy animation library — loaded lazily with pages that use it
-          if (id.includes('framer-motion'))
-            return 'motion-vendor';
-
-          // Icon library — tree-shaken by Vite, but isolate for caching
-          if (id.includes('lucide-react'))
-            return 'icons-vendor';
-
-          // Real-time socket — only Admin Dashboard connects
-          if (id.includes('socket.io-client') || id.includes('engine.io'))
-            return 'socket-vendor';
+          }
 
           // TanStack Query
-          if (id.includes('@tanstack'))
+          if (id.includes('/node_modules/@tanstack/')) {
             return 'query-vendor';
+          }
+
+          // Heavy chart library — only Dashboard & Adherence pages use it
+          if (id.includes('/node_modules/recharts/') || id.includes('/node_modules/d3-')) {
+            return 'charts-vendor';
+          }
+
+          // Heavy animation library
+          if (id.includes('/node_modules/framer-motion/')) {
+            return 'motion-vendor';
+          }
+
+          // Icon library
+          if (id.includes('/node_modules/lucide-react/')) {
+            return 'icons-vendor';
+          }
+
+          // Real-time socket
+          if (id.includes('/node_modules/socket.io-client/') || id.includes('/node_modules/engine.io/')) {
+            return 'socket-vendor';
+          }
 
           // Everything else from node_modules
           return 'vendor';
