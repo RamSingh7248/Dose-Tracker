@@ -2,7 +2,20 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import axios from 'axios';
 import api from "../services/api";
 
-const AuthContext = createContext(null);
+const defaultAuthContext = {
+  user: null,
+  loading: false,
+  login: async () => {},
+  register: async () => {},
+  googleLogin: async () => {},
+  logout: async () => {},
+  updateUser: () => {},
+  isAdmin: false,
+  isDoctor: false,
+  isPatient: true,
+};
+
+const AuthContext = createContext(defaultAuthContext);
 
 const THEME_MAP = {
   purple: {
@@ -200,6 +213,5 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be inside AuthProvider');
-  return ctx;
+  return ctx || defaultAuthContext;
 };

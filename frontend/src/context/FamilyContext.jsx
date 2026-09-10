@@ -2,7 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { memberApi } from '../services/api';
 import { useAuth } from './AuthContext';
 
-const FamilyContext = createContext(null);
+const defaultFamilyContext = {
+  members: [],
+  activeMember: null,
+  selectMember: () => {},
+  resetToMyself: () => {},
+  fetchMembers: async () => {},
+  loading: false,
+};
+
+const FamilyContext = createContext(defaultFamilyContext);
 
 export const FamilyProvider = ({ children }) => {
   const { user } = useAuth();
@@ -54,8 +63,5 @@ export const FamilyProvider = ({ children }) => {
 
 export const useFamily = () => {
   const context = useContext(FamilyContext);
-  if (!context) {
-    throw new Error('useFamily must be used within a FamilyProvider');
-  }
-  return context;
+  return context || defaultFamilyContext;
 };
