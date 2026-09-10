@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { connectSocket, getSocket } from '../services/socket';
-import { queryClient } from '../main';
+import { queryClient } from '../queryClient';
 
 export const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
 

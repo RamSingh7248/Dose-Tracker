@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),
   ],
   resolve: {
     alias: {
@@ -14,6 +12,19 @@ export default defineConfig({
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
     dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'axios',
+      'lucide-react',
+      'react-hot-toast',
+      'recharts',
+      'framer-motion',
+    ],
   },
   server: {
     port: 3000,
@@ -28,18 +39,12 @@ export default defineConfig({
     minify: 'oxc',
     target: 'esnext',
     cssCodeSplit: true,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
     sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('recharts') || id.includes('d3-')) {
-              return 'charts-vendor';
-            }
-            if (id.includes('framer-motion')) {
-              return 'motion-vendor';
-            }
             return 'vendor';
           }
         },
