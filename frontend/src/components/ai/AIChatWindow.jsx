@@ -188,7 +188,7 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
             className="input-field"
             style={{ fontSize: 12, padding: '4px 10px', height: 'auto', background: 'var(--bg-primary)' }}
           >
-            <option value="groq">Groq Llama 3.3 70B (Recommended)</option>
+            <option value="groq">Groq (Ultra-Fast AI - Recommended)</option>
             <option value="gemini">Google Gemini 2.0</option>
             <option value="gpt">OpenAI GPT-4o</option>
             <option value="claude">Anthropic Claude 3.5</option>

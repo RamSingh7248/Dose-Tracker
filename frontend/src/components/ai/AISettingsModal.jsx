@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { X, Sliders, Cpu, Sparkles, Volume2, ShieldCheck, Download, Trash2, Check } from 'lucide-react';
 
 const PROVIDERS = [
-  { id: 'groq',     name: 'Groq Llama 3.3 70B',  badge: 'Recommended', color: '#f97316', desc: 'Ultra-fast, high-precision healthcare reasoning' },
+  { id: 'groq',     name: 'Groq (Ultra-Fast AI)', badge: 'Recommended', color: '#f97316', desc: 'Ultra-fast, high-precision healthcare reasoning powered by Groq' },
   { id: 'gemini',   name: 'Google Gemini 2.0',  badge: 'Multimodal',  color: '#4285F4', desc: 'Fast multimodal clinical reasoning' },
   { id: 'gpt',      name: 'OpenAI GPT-4o',      badge: 'Enterprise',  color: '#10a37f', desc: 'Advanced clinical decision support & broad context' },
   { id: 'claude',   name: 'Anthropic Claude 3.5', badge: 'Clinical',  color: '#d97706', desc: 'Nuanced diagnostic writing & safety guardrails' },
