@@ -1,12 +1,12 @@
 const { getAIProvider } = require('./aiProviderFactory');
 
-const DEFAULT_CASCADE = ['gemini', 'gpt', 'claude', 'deepseek'];
+const DEFAULT_CASCADE = ['groq', 'gemini', 'gpt', 'claude', 'deepseek'];
 
 /**
  * Smart AI Router with Failover Cascade
  * Primary Provider -> Secondary -> Tertiary -> Local Clinical NLP Fallback
  */
-async function executeAIRoute({ primaryProvider = 'gemini', prompt, systemPrompt, options = {}, localFallbackFn }) {
+async function executeAIRoute({ primaryProvider = 'groq', prompt, systemPrompt, options = {}, localFallbackFn }) {
   // Build dynamic priority list with primaryProvider at index 0
   const cascade = [
     primaryProvider.toLowerCase(),

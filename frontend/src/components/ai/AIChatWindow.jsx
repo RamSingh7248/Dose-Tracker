@@ -6,7 +6,7 @@ import {
   Paperclip, Sliders, Pin, Trash2, RotateCcw, StopCircle, Download, FileText, Search
 } from 'lucide-react';
 
-export default function AIChatWindow({ category = 'patient_health', defaultProvider = 'gemini', isDoctor = false, externalPrompt = '' }) {
+export default function AIChatWindow({ category = 'patient_health', defaultProvider = 'groq', isDoctor = false, externalPrompt = '' }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,6 +16,11 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [fileAttachment, setFileAttachment] = useState(null);
   const messagesEndRef = useRef(null);
+  
+  // Update provider state if defaultProvider prop changes
+  useEffect(() => {
+    setProvider(defaultProvider);
+  }, [defaultProvider]);
 
   // Trigger prompt when external prompt changes
   useEffect(() => {
@@ -183,7 +188,8 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
             className="input-field"
             style={{ fontSize: 12, padding: '4px 10px', height: 'auto', background: 'var(--bg-primary)' }}
           >
-            <option value="gemini">Google Gemini 2.0 (Recommended)</option>
+            <option value="groq">Groq Llama 3.3 70B (Recommended)</option>
+            <option value="gemini">Google Gemini 2.0</option>
             <option value="gpt">OpenAI GPT-4o</option>
             <option value="claude">Anthropic Claude 3.5</option>
             <option value="deepseek">DeepSeek V3</option>

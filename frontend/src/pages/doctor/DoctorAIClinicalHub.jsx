@@ -57,7 +57,7 @@ export default function DoctorAIClinicalHub() {
 
       {/* Central Clinical AI Chat */}
       <div style={{ flex: 1, minHeight: 0 }}>
-        <AIChatWindow category="doctor_clinical" defaultProvider="gemini" isDoctor={true} />
+        <AIChatWindow category="doctor_clinical" defaultProvider="groq" isDoctor={true} />
       </div>
 
       <AISettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />

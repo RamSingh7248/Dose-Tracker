@@ -92,7 +92,7 @@ export default function EnterpriseAIHub() {
 
       {/* Centralized Chat Window Workspace */}
       <div style={{ flex: 1, minHeight: 0 }}>
-        <AIChatWindow category="patient_health" defaultProvider="gemini" externalPrompt={activePrompt} />
+        <AIChatWindow category="patient_health" defaultProvider="groq" externalPrompt={activePrompt} />
       </div>
 
       {/* Modals */}

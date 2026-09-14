@@ -59,8 +59,8 @@ const SystemSettingsSchema = new mongoose.Schema(
     },
     ai: {
       enableAI: { type: Boolean, default: true },
-      defaultProvider: { type: String, default: 'gemini' },
-      providerPriority: { type: Array, default: ['gemini', 'gpt', 'claude', 'deepseek'] },
+      defaultProvider: { type: String, default: 'groq' },
+      providerPriority: { type: Array, default: ['groq', 'gemini', 'gpt', 'claude', 'deepseek'] },
       temperature: { type: Number, default: 0.7 },
       maxTokens: { type: Number, default: 1000 },
       dailyTokenLimit: { type: Number, default: 500000 },

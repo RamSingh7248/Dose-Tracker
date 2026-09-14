@@ -197,10 +197,77 @@ class DeepSeekProvider extends BaseAIProvider {
   }
 }
 
+// 5. Groq Provider (Fast Llama-3 / Mixtral / Gemma models)
+class GroqProvider extends BaseAIProvider {
+  constructor(apiKey) {
+    super('groq', apiKey || process.env.GROQ_API_KEY);
+  }
+
+  async generateContent({ prompt, systemPrompt, options = {} }) {
+    if (!this.apiKey) {
+      throw new Error("Groq API key not configured");
+    }
+
+    const messages = [];
+    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+    messages.push({ role: 'user', content: prompt });
+
+    const modelsToTry = [
+      options.model || 'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'mixtral-8x7b-32768',
+      'gemma2-9b-it',
+    ];
+
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages,
+            temperature: options.temperature ?? 0.7,
+            max_tokens: options.maxTokens || 1000,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error?.message || `Groq API Error ${response.status}`);
+        }
+
+        const text = data.choices?.[0]?.message?.content || '';
+        const tokens = data.usage?.total_tokens || Math.ceil((prompt.length + text.length) / 4);
+
+        return {
+          text,
+          provider: 'groq',
+          model: data.model || modelName,
+          tokensUsed: tokens,
+          costEstimatedUsd: Number((tokens * 0.0000005).toFixed(6)),
+        };
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    throw lastError || new Error("All Groq models failed");
+  }
+}
+
 // Provider Factory Method
-function getAIProvider(providerName = 'gemini') {
-  const p = providerName.toLowerCase();
+function getAIProvider(providerName = 'groq') {
+  const p = (providerName || '').toLowerCase();
   switch (p) {
+    case 'groq':
+    case 'llama':
+      return new GroqProvider();
     case 'gpt':
     case 'openai':
       return new OpenAIGPTProvider();
@@ -211,7 +278,11 @@ function getAIProvider(providerName = 'gemini') {
       return new DeepSeekProvider();
     case 'gemini':
     case 'google':
+      return new GoogleGeminiProvider();
     default:
+      if (process.env.GROQ_API_KEY) {
+        return new GroqProvider();
+      }
       return new GoogleGeminiProvider();
   }
 }
@@ -222,4 +293,5 @@ module.exports = {
   OpenAIGPTProvider,
   AnthropicClaudeProvider,
   DeepSeekProvider,
+  GroqProvider,
 };

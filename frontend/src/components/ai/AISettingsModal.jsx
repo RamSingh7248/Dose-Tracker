@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import { X, Sliders, Cpu, Sparkles, Volume2, ShieldCheck, Download, Trash2, Check } from 'lucide-react';
 
 const PROVIDERS = [
-  { id: 'gemini',   name: 'Google Gemini 2.0',  badge: 'Recommended', color: '#4285F4', desc: 'Fast, multimodal, high precision healthcare reasoning' },
+  { id: 'groq',     name: 'Groq Llama 3.3 70B',  badge: 'Recommended', color: '#f97316', desc: 'Ultra-fast, high-precision healthcare reasoning' },
+  { id: 'gemini',   name: 'Google Gemini 2.0',  badge: 'Multimodal',  color: '#4285F4', desc: 'Fast multimodal clinical reasoning' },
   { id: 'gpt',      name: 'OpenAI GPT-4o',      badge: 'Enterprise',  color: '#10a37f', desc: 'Advanced clinical decision support & broad context' },
   { id: 'claude',   name: 'Anthropic Claude 3.5', badge: 'Clinical',  color: '#d97706', desc: 'Nuanced diagnostic writing & safety guardrails' },
   { id: 'deepseek', name: 'DeepSeek V3 / R1',   badge: 'Open Weight', color: '#8b5cf6', desc: 'High efficiency open-weight reasoning model' },
@@ -14,7 +15,7 @@ export default function AISettingsModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
-    defaultProvider: 'gemini',
+    defaultProvider: 'groq',
     temperature: 0.7,
     responseLength: 'balanced',
     language: 'en',

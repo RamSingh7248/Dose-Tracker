@@ -1,5 +1,6 @@
 const { GoogleGenAI } = require("@google/genai");
 const Medication = require('../models/Medication');
+const { executeAIRoute } = require('../services/smartAIRouter');
 
 // @desc    AI Health Assistant — answer health questions
 // @route   POST /api/ai/ask
@@ -15,13 +16,12 @@ const askAI = async (req, res) => {
 
     const medContext = medications.map(m => `${m.name} (${m.dosage} ${m.dosageUnit}, ${m.frequency})`).join(', ');
 
-    // Check if Gemini API key is available
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Check if API key is available
+    const hasApiKey = !!(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY);
     let answer = null;
 
-    if (apiKey) {
-      // Use Gemini API
-      answer = await callGemini(question, medContext, context, apiKey);
+    if (hasApiKey) {
+      answer = await callAIAssistant(question, medContext, context);
     }
     
     // Fallback to intelligent rule-based response if API key is missing or API call fails/exceeds quota
@@ -50,12 +50,12 @@ const explainMedication = async (req, res) => {
     const { medicationName, dosage } = req.body;
     if (!medicationName) return res.status(400).json({ success: false, message: 'Medication name required' });
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const hasApiKey = !!(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY);
     let explanation = null;
 
-    if (apiKey) {
+    if (hasApiKey) {
       const prompt = `Explain the medication "${medicationName}" ${dosage ? `(dosage: ${dosage})` : ''} in simple, patient-friendly language. Include: what it's used for, how it works, common side effects, and important precautions. Keep it concise (under 300 words).`;
-      explanation = await callGemini(prompt, '', '', apiKey);
+      explanation = await callAIAssistant(prompt, '', '');
     }
     
     if (!explanation) {
@@ -68,7 +68,7 @@ const explainMedication = async (req, res) => {
         medication: medicationName,
         explanation,
         disclaimer: '⚠️ This is general information. Always consult your healthcare provider for personalized medical advice.',
-        aiPowered: !!apiKey,
+        aiPowered: !!explanation,
       },
     });
   } catch (error) {
@@ -96,12 +96,12 @@ const checkInteractions = async (req, res) => {
     }
 
     const medNames = medications.map(m => `${m.name} (${m.dosage} ${m.dosageUnit})`);
-    const apiKey = process.env.GEMINI_API_KEY;
+    const hasApiKey = !!(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY);
     let result = null;
 
-    if (apiKey) {
+    if (hasApiKey) {
       const prompt = `Check for potential drug interactions between these medications: ${medNames.join(', ')}. List any known interactions with severity (mild/moderate/severe) and brief explanation. Format each interaction as: "**Drug A + Drug B**: Severity - Description". If no known interactions, say so.`;
-      const answer = await callGemini(prompt, '', '', apiKey);
+      const answer = await callAIAssistant(prompt, '', '');
       if (answer) {
         result = { analysis: answer, medications: medNames };
       }
@@ -119,7 +119,7 @@ const checkInteractions = async (req, res) => {
       data: {
         ...result,
         disclaimer: '⚠️ This analysis is for informational purposes only. Always verify with your pharmacist or healthcare provider.',
-        aiPowered: !!apiKey,
+        aiPowered: !!hasApiKey,
       },
     });
   } catch (error) {
@@ -127,55 +127,28 @@ const checkInteractions = async (req, res) => {
   }
 };
 
-// ── Gemini API Helper ──
-async function callGemini(prompt, medContext, additionalContext, apiKey) {
+// ── AI Assistant Helper ──
+async function callAIAssistant(prompt, medContext, additionalContext) {
   try {
-    const ai = new GoogleGenAI({ apiKey });
-
-    const fullPrompt = `
-You are a helpful expert health assistant for the DoseTracker application.
-
+    const systemPrompt = `You are a helpful expert health assistant for the DoseTracker application.
 ${medContext ? `User active medications: ${medContext}` : ""}
 ${additionalContext ? `Additional Context: ${additionalContext}` : ""}
-
-User Question:
-${prompt}
 
 Instructions:
 1. Provide a comprehensive, accurate, and easy-to-understand explanation directly addressing the user's specific health or medical question.
 2. Structure your response clearly using bullet points, bold section titles, and clean formatting.
 3. If relevant, explain how it connects to their current medications or daily health routine.
-4. Conclude with a helpful medical disclaimer.
-`;
+4. Conclude with a helpful medical disclaimer.`;
 
-    // Updated Gemini models in fallback order
-    const modelsToTry = [
-      "gemini-2.0-flash",
-      "gemini-2.5-flash",
-      "gemini-2.0-flash-lite",
-      "gemini-2.5-pro",
-      "gemini-1.5-flash",
-    ];
+    const aiResult = await executeAIRoute({
+      primaryProvider: 'groq',
+      prompt,
+      systemPrompt,
+    });
 
-    for (const modelName of modelsToTry) {
-      try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: fullPrompt,
-        });
-
-        if (response && response.text) {
-          return response.text;
-        }
-      } catch (err) {
-        // Silently log and try next model
-        console.warn(`Gemini model ${modelName} error:`, err.message?.slice(0, 100));
-      }
-    }
-
-    return null; // Signal failure to caller so it falls back gracefully
+    return aiResult.text;
   } catch (error) {
-    console.error("Gemini SDK Error:", error);
+    console.error("AI Assistant Router Error:", error);
     return null;
   }
 }

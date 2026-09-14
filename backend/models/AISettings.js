@@ -11,8 +11,8 @@ const AISettingsSchema = new mongoose.Schema(
     },
     defaultProvider: {
       type: String,
-      enum: ['gemini', 'gpt', 'claude', 'deepseek', 'llama', 'mistral', 'grok', 'perplexity'],
-      default: 'gemini',
+      enum: ['groq', 'gemini', 'gpt', 'claude', 'deepseek', 'llama', 'mistral', 'grok', 'perplexity'],
+      default: 'groq',
     },
     temperature: {
       type: Number,
