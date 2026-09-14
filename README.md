@@ -202,7 +202,17 @@ npm run dev
 
 ## 📜 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+© 2026 Ram Singh. All Rights Reserved.
+
+This project and its source code are proprietary.
+
+You may view this repository for personal and educational reference only.
+You may not copy, reproduce, modify, distribute, publish, sell,
+or use this source code or any part of it without prior written
+permission from the author.
+
+Unauthorized use, reproduction, or distribution of this code is prohibited.
 
 ---
 
