@@ -43,12 +43,11 @@ const DoseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-DoseSchema.pre('save', function (next) {
+DoseSchema.pre('save', function () {
   if (!this.patientId && this.user) this.patientId = this.user;
   if (!this.user && this.patientId) this.user = this.patientId;
   if (!this.medicineId && this.medication) this.medicineId = this.medication;
   if (!this.medication && this.medicineId) this.medication = this.medicineId;
-  next();
 });
 
 DoseSchema.index({ patientId: 1, scheduledDate: -1 });

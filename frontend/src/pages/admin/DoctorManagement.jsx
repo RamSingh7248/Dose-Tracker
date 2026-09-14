@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../services/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '../../queryClient';
 import toast from 'react-hot-toast';
 import { Plus, X, Trash2, CheckCircle, Search, Eye } from 'lucide-react';
 
 const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
 
 export default function DoctorManagement() {
-  const queryClient = useQueryClient();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

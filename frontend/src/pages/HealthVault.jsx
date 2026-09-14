@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { documentApi } from '../services/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '../queryClient';
 import {
   Upload, FileText, Search, Download, Share2, Trash2, X,
   Filter, Eye, LinkIcon, Tag, Folder, FolderPlus, RotateCcw,
@@ -26,7 +26,6 @@ const TYPE_DETAILS = {
 };
 
 export default function HealthVault() {
-  const queryClient = useQueryClient();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);

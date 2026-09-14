@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { prescriptionApi } from '../services/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '../queryClient';
 import { Upload, FileText, Trash2, X, Plus, Pill, CheckCircle, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -19,7 +19,6 @@ const createDefaultMedicine = () => ({
 });
 
 export default function PrescriptionScanner() {
-  const queryClient = useQueryClient();
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);

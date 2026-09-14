@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { medicationApi, doseApi } from '../services/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '../queryClient';
 import toast from 'react-hot-toast';
 import { CheckCircle, XCircle, Clock, SkipForward, Calendar, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -30,7 +30,6 @@ function buildSchedule(medications, date) {
 }
 
 export default function DoseLog() {
-  const queryClient = useQueryClient();
   const [medications, setMedications] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);

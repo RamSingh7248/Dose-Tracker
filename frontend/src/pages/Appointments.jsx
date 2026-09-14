@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { appointmentApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '../queryClient';
 import {
   Calendar, Plus, Clock, MapPin, Video, Phone, Home,
   FlaskConical, Edit2, Trash2, X, RefreshCw, CheckCircle,
@@ -16,7 +16,6 @@ const STATUS_BADGE = { scheduled: 'badge-purple', completed: 'badge-green', canc
 
 export default function Appointments() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [appointments, setAppointments] = useState([]);
   const [upcoming, setUpcoming] = useState([]);
   const [loading, setLoading] = useState(true);

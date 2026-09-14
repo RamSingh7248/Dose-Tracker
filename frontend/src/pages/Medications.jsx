@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { medicationApi, memberApi } from '../services/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '../queryClient';
 import toast from 'react-hot-toast';
 import { Plus, Edit2, Trash2, Pill, X, Search, Filter } from 'lucide-react';
 
@@ -32,7 +32,6 @@ const defaultForm = {
 };
 
 export default function Medications() {
-  const queryClient = useQueryClient();
   const [medications, setMedications] = useState([]);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -86,12 +86,11 @@ const PrescriptionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-PrescriptionSchema.pre('save', function (next) {
+PrescriptionSchema.pre('save', function () {
   if (!this.patientId && this.user) this.patientId = this.user;
   if (!this.user && this.patientId) this.user = this.patientId;
   if (!this.doctorId && this.doctor) this.doctorId = this.doctor;
   if (!this.doctor && this.doctorId) this.doctor = this.doctorId;
-  next();
 });
 
 PrescriptionSchema.index({ patientId: 1, createdAt: -1 });

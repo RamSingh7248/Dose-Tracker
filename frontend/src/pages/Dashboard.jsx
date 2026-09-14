@@ -86,30 +86,34 @@ export default function Dashboard() {
         const meds = medsRes.value.data.data || [];
         const weekDoses = weekDosesRes.status === 'fulfilled' ? (weekDosesRes.value.data.data || []) : [];
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const today = new Date();
         const todayLoggedDoses = weekDoses.filter(d => {
           if (!d.scheduledTime) return false;
-          const dDateStr = new Date(d.scheduledTime).toISOString().split('T')[0];
-          return dDateStr === todayStr;
+          const dDate = new Date(d.scheduledTime);
+          return (
+            dDate.getFullYear() === today.getFullYear() &&
+            dDate.getMonth() === today.getMonth() &&
+            dDate.getDate() === today.getDate()
+          );
         });
 
         const doses = meds.flatMap(m =>
           (m.times || []).map(t => {
             const logged = todayLoggedDoses.find(d => {
-              const medId = d.medication?._id || d.medication;
+              const medId = d.medication?._id || d.medication || d.medicineId?._id || d.medicineId;
               if (!medId) return false;
               const matchMed = medId.toString() === m._id.toString();
               const dbDate = new Date(d.scheduledTime);
               const pad = (num) => String(num).padStart(2, '0');
               const dbTime = `${pad(dbDate.getHours())}:${pad(dbDate.getMinutes())}`;
-              return matchMed && (dbTime === t || todayLoggedDoses.length === 1);
+              return matchMed && (dbTime === t || (m.times || []).length === 1);
             });
 
             return {
               id: `${m._id}-${t}`,
               medication: m,
               time: t,
-              status: logged ? logged.status : 'pending',
+              status: logged ? (logged.status || 'pending').toLowerCase() : 'pending',
               dbId: logged ? logged._id : null,
             };
           })
@@ -177,8 +181,10 @@ export default function Dashboard() {
       const isTaken = targetStatus === 'taken';
       setTodayDoses(prev => prev.map(d => d.id === dose.id ? { ...d, status: targetStatus } : d));
 
-      const todayStr = new Date().toISOString().split('T')[0];
-      const scheduledTime = `${todayStr}T${dose.time}:00.000Z`;
+      const [hours = 0, minutes = 0] = (dose.time || '09:00').split(':').map(Number);
+      const schedDate = new Date();
+      schedDate.setHours(hours, minutes, 0, 0);
+      const scheduledTime = schedDate.toISOString();
 
       await doseApi.log({
         medicationId: dose.medication._id,

@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminApi, authApi } from '../../services/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '../../queryClient';
 import toast from 'react-hot-toast';
 import { Search, UserX, UserCheck, Plus, X, Trash2, Eye, User } from 'lucide-react';
 
 const DASHBOARD_QUERY_KEY = ['admin-dashboard-stats'];
 
 export default function UserManagement() {
-  const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

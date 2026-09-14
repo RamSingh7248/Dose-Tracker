@@ -159,16 +159,184 @@ const getPatientDoseHistory = async (req, res) => {
   }
 };
 
-// Generic get all doses handler for backward compatibility
+// @desc    Log or update a dose record (Taken, Skipped, Missed, Pending)
+// @route   POST /api/doses/log or POST /api/doses
+// @access  Private
+const logDose = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { medicationId, medicineId, status = 'taken', scheduledTime, notes = '' } = req.body;
+
+    const medId = medicationId || medicineId;
+    if (!medId) {
+      return res.status(400).json({ success: false, message: 'medicationId is required' });
+    }
+
+    const scheduledDate = scheduledTime ? new Date(scheduledTime) : new Date();
+    const isTaken = status.toLowerCase() === 'taken';
+    const isPending = status.toLowerCase() === 'pending';
+
+    const startOfDay = new Date(scheduledDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(scheduledDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Look for existing dose today for this medication
+    let dose = await Dose.findOne({
+      $or: [{ patientId: userId }, { user: userId }],
+      $or: [{ medicineId: medId }, { medication: medId }],
+      $or: [
+        { scheduledTime: scheduledTime || { $exists: true } },
+        { scheduledDate: { $gte: startOfDay, $lte: endOfDay } },
+      ],
+    });
+
+    const previousStatus = dose ? (dose.status || '').toLowerCase() : null;
+
+    if (dose) {
+      dose.status = status;
+      if (scheduledTime) dose.scheduledTime = scheduledTime;
+      dose.takenAt = isTaken ? new Date() : null;
+      if (notes) dose.notes = notes;
+      await dose.save();
+    } else {
+      dose = await Dose.create({
+        patientId: userId,
+        user: userId,
+        medicineId: medId,
+        medication: medId,
+        scheduledTime: scheduledTime || new Date().toISOString(),
+        scheduledDate,
+        status,
+        takenAt: isTaken ? new Date() : null,
+        notes,
+      });
+    }
+
+    // Inventory management: decrement if taken, restore if undone from taken to pending
+    const med = await Medication.findOne({ _id: medId, user: userId });
+    if (med && typeof med.pillsRemaining === 'number') {
+      const perDose = med.pillsPerDose || 1;
+      if (isTaken && previousStatus !== 'taken') {
+        med.pillsRemaining = Math.max(0, med.pillsRemaining - perDose);
+        await med.save();
+      } else if (isPending && previousStatus === 'taken') {
+        med.pillsRemaining = med.pillsRemaining + perDose;
+        await med.save();
+      }
+    }
+
+    const populated = await Dose.findById(dose._id)
+      .populate('medicineId', 'name dosage')
+      .populate('medication', 'name dosage times');
+
+    res.status(200).json({ success: true, data: populated || dose });
+  } catch (error) {
+    console.error('logDose error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get dose stats (adherence rate, counts)
+// @route   GET /api/doses/stats
+// @access  Private
+const getDoseStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const days = parseInt(req.query.days) || 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const doses = await Dose.find({
+      $or: [{ patientId: userId }, { user: userId }],
+      $or: [
+        { scheduledDate: { $gte: startDate } },
+        { createdAt: { $gte: startDate } },
+      ],
+    }).lean();
+
+    const total = doses.length;
+    const taken = doses.filter(d => (d.status || '').toLowerCase() === 'taken').length;
+    const skipped = doses.filter(d => (d.status || '').toLowerCase() === 'skipped').length;
+    const missed = doses.filter(d => (d.status || '').toLowerCase() === 'missed').length;
+    const adherenceRate = total > 0 ? Math.round((taken / total) * 100) : 100;
+
+    res.json({
+      success: true,
+      data: {
+        total,
+        taken,
+        skipped,
+        missed,
+        adherenceRate,
+        days,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete a dose record (e.g. undo dose log)
+// @route   DELETE /api/doses/:id
+// @access  Private
+const deleteDose = async (req, res) => {
+  try {
+    const dose = await Dose.findOneAndDelete({
+      _id: req.params.id,
+      $or: [{ patientId: req.user.id }, { user: req.user.id }],
+    });
+    if (!dose) return res.status(404).json({ success: false, message: 'Dose not found' });
+    res.json({ success: true, message: 'Dose record removed' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get all doses with optional date filtering
+// @route   GET /api/doses
+// @access  Private
 const getDoses = async (req, res) => {
-  return getDoseHistory(req, res);
+  try {
+    const userId = req.user.id;
+    const query = {
+      $or: [{ patientId: userId }, { user: userId }],
+    };
+
+    if (req.query.from || req.query.to) {
+      const dateFilter = {};
+      if (req.query.from) dateFilter.$gte = new Date(req.query.from);
+      if (req.query.to) dateFilter.$lte = new Date(req.query.to);
+      query.$and = [
+        {
+          $or: [
+            { scheduledDate: dateFilter },
+            { createdAt: dateFilter },
+          ],
+        },
+      ];
+    }
+
+    const doses = await Dose.find(query)
+      .populate('medicineId', 'name dosage')
+      .populate('medication', 'name dosage times')
+      .sort('-createdAt')
+      .lean();
+
+    res.json({ success: true, data: doses });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 module.exports = {
   getTodayDoses,
   getDoseHistory,
+  getDoseStats,
   markDoseTaken,
   markDoseSkipped,
+  logDose,
+  deleteDose,
   getPatientDoseHistory,
   getDoses,
 };

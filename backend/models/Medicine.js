@@ -49,13 +49,12 @@ const MedicineSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-MedicineSchema.pre('save', function (next) {
+MedicineSchema.pre('save', function () {
   if (!this.user && this.patientId) {
     this.user = this.patientId;
   } else if (!this.patientId && this.user) {
     this.patientId = this.user;
   }
-  next();
 });
 
 MedicineSchema.index({ patientId: 1, status: 1 });
