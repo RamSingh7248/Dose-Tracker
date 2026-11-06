@@ -79,7 +79,7 @@ export default function SystemReports() {
           { label: 'Adherence Rate', value: `${globalAdherence}%`, icon: CheckCircle, color: '#16a34a' },
           { label: 'Active Users', value: users.active, icon: Users, color: '#2563eb' },
           { label: 'Total Prescriptions', value: prescriptions.total, icon: FileText, color: '#8b5cf6' },
-          { label: 'Active Medications', value: medications.total, icon: Pill, color: '#d97706' },
+          { label: 'Active Medicines', value: medications.total, icon: Pill, color: '#d97706' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} style={{
             background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, padding: 18,
@@ -114,7 +114,7 @@ export default function SystemReports() {
             </ResponsiveContainer>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 13 }}>
-              No medication dose data available yet.
+              No medicine dose data available yet.
             </div>
           )}
         </div>

@@ -142,12 +142,12 @@ export default function DoseLog() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h1 className="page-title">Dose Log</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Track your daily medication intake</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Track your daily medicine intake</p>
         </div>
         <button
           className="btn-secondary"
           onClick={() => {
-            const csv = 'Date,Medication,Time,Status\n' + schedule.map(s => `${selectedDate},"${s.medication.name}",${s.time},${s.status}`).join('\n');
+            const csv = 'Date,Medicine,Time,Status\n' + schedule.map(s => `${selectedDate},"${s.medication.name}",${s.time},${s.status}`).join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -201,7 +201,7 @@ export default function DoseLog() {
           <div className="empty-state-icon">📅</div>
           <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No doses scheduled</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-            {filterStatus !== 'all' ? `No ${filterStatus} doses for this date` : 'Add medications to see your schedule'}
+            {filterStatus !== 'all' ? `No ${filterStatus} doses for this date` : 'Add medicines to see your schedule'}
           </p>
         </div>
       ) : (

@@ -48,7 +48,7 @@ export default function PrescriptionGenerator() {
     e.preventDefault();
     if (!selectedPatientId) return toast.error('Please select a patient');
     const validMeds = medicines.filter(m => m.name.trim());
-    if (validMeds.length === 0) return toast.error('Please enter at least one medication name');
+    if (validMeds.length === 0) return toast.error('Please enter at least one medicine name');
 
     setSaving(true);
     try {
@@ -122,7 +122,7 @@ export default function PrescriptionGenerator() {
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>Medications List</label>
+              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>Medicines List</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"

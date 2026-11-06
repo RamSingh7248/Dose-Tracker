@@ -37,18 +37,18 @@ export default function AIPrescriptionScannerModal({ isOpen, onClose, onScanComp
     setSavingMed(true);
     try {
       await medicationApi.create({
-        name: extractedData.medicationName || 'Scanned Medication',
+        name: extractedData.medicationName || 'Scanned Medicine',
         dosage: extractedData.dosage || '500 mg',
         dosageUnit: 'mg',
         frequency: 'daily',
         times: ['08:00', '20:00'],
         instructions: extractedData.instructions || 'Take after food',
       });
-      toast.success(`Created medication reminder for ${extractedData.medicationName || 'Medication'}! 💊`);
+      toast.success(`Created medicine reminder for ${extractedData.medicationName || 'Medicine'}! 💊`);
       if (onScanComplete) onScanComplete(extractedData);
       onClose();
     } catch {
-      toast.error('Failed to create medication reminder');
+      toast.error('Failed to create medicine reminder');
     } finally {
       setSavingMed(false);
     }
@@ -135,7 +135,7 @@ export default function AIPrescriptionScannerModal({ isOpen, onClose, onScanComp
             {/* Form Fields */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>Medication Name</label>
+                <label style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>Medicine Name</label>
                 <input
                   className="input-field"
                   value={extractedData.medicationName}

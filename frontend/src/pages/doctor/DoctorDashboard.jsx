@@ -42,7 +42,7 @@ export default function DoctorDashboard() {
 
   const statCards = [
     { label: 'My Patients', value: stats?.totalPatients || 0, icon: Users, color: '#14b8a6', to: '/doctor/patients' },
-    { label: 'Total Medications', value: stats?.totalMeds || 0, icon: Pill, color: '#8b5cf6', to: '/doctor/prescriptions' },
+    { label: 'Total Medicines', value: stats?.totalMeds || 0, icon: Pill, color: '#8b5cf6', to: '/doctor/prescriptions' },
     { label: 'Avg Patient Adherence', value: `${analytics?.summary?.averageAdherence ?? (stats?.adherenceRate || 100)}%`, icon: Activity, color: '#3b82f6', to: '/doctor/analytics' },
     { label: 'Low Adherence Alerts', value: analytics?.summary?.lowAdherenceCount || 0, icon: AlertTriangle, color: '#f43f5e', to: '/doctor/analytics' },
   ];

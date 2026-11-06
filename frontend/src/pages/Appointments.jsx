@@ -413,7 +413,7 @@ export default function Appointments() {
               {form.isFollowUp && (
                 <div>
                   <label style={{ fontSize: 12, color: '#06b6d4', marginBottom: 4, display: 'block', fontWeight: 600 }}>Follow-Up Reason</label>
-                  <input className="input-field" placeholder="e.g. Medication review, lab test check" value={form.followUpReason} onChange={e => setForm({ ...form, followUpReason: e.target.value })} />
+                  <input className="input-field" placeholder="e.g. Medicine review, lab test check" value={form.followUpReason} onChange={e => setForm({ ...form, followUpReason: e.target.value })} />
                 </div>
               )}
 

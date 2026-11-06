@@ -112,7 +112,7 @@ self.addEventListener('fetch', (event) => {
 
 // ── Push / Notification Events ──────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let data = { title: 'DoseTracker Reminder', body: "It's time for your scheduled medication." };
+  let data = { title: 'DoseTracker Reminder', body: "It's time for your scheduled medicine." };
   try {
     if (event.data) {
       data = event.data.json();

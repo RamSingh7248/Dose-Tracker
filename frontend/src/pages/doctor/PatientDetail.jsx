@@ -71,7 +71,7 @@ export default function PatientDetail() {
         <div className="glass-card" style={{ padding: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <Pill size={20} color="#8b5cf6" />
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>Active Medications</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>Active Medicines</div>
           </div>
           <div style={{ fontSize: 28, fontWeight: 800 }}>{data.medications.length}</div>
         </div>
@@ -96,7 +96,7 @@ export default function PatientDetail() {
         <div className="glass-card" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Current Active Prescriptions</h3>
           {data.medications.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>No active medications recorded for this patient.</p>
+            <p style={{ color: 'var(--text-muted)' }}>No active medicines recorded for this patient.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {data.medications.map(m => (

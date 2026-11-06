@@ -217,7 +217,7 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
                 {isDoctor
                   ? 'Generate SOAP notes, review medical reports, draft treatment plans, check drug interactions, and analyze patient risk trends.'
-                  : 'Ask anything about your medications, blood reports, X-rays, diet & exercise plans, or check for drug interactions.'}
+                  : 'Ask anything about your medicines, blood reports, X-rays, diet & exercise plans, or check for drug interactions.'}
               </p>
             </div>
 
@@ -225,13 +225,13 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', maxWidth: 540, marginTop: 8 }}>
               {(isDoctor ? [
                 { icon: '📝', label: 'SOAP Notes Draft', prompt: 'Generate a structured SOAP note for a cardiology patient with hypertension.' },
-                { icon: '🩺', label: 'Patient Risk Analysis', prompt: 'Analyze high-risk patients with missed medication adherence in the past 14 days.' },
+                { icon: '🩺', label: 'Patient Risk Analysis', prompt: 'Analyze high-risk patients with missed medicine adherence in the past 14 days.' },
                 { icon: '💊', label: 'Drug Interaction Audit', prompt: 'Perform a comprehensive drug interaction and allergy audit for active prescriptions.' },
                 { icon: '📊', label: 'Visit Summary Draft', prompt: 'Draft a patient-friendly visit summary including lifestyle instructions and follow-up timeline.' },
               ] : [
                 { icon: '🩸', label: 'Blood Report Analysis', prompt: 'Explain my complete blood count (CBC) and blood sugar report results in simple terms.' },
-                { icon: '🥗', label: 'Diet & Exercise Tips', prompt: 'Give me personalized diet and exercise suggestions that are safe with my active medications.' },
-                { icon: '⚠️', label: 'Drug Interaction Check', prompt: 'Check for drug interactions between my active medications and dietary supplements.' },
+                { icon: '🥗', label: 'Diet & Exercise Tips', prompt: 'Give me personalized diet and exercise suggestions that are safe with my active medicines.' },
+                { icon: '⚠️', label: 'Drug Interaction Check', prompt: 'Check for drug interactions between my active medicines and dietary supplements.' },
                 { icon: '🧠', label: 'MRI / CT Report Summary', prompt: 'Summarize my MRI and CT Scan findings and explain key medical terms.' },
               ]).map((card, cIdx) => (
                 <button
@@ -355,7 +355,7 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
 
           <input
             className="input-field"
-            placeholder={isDoctor ? 'Draft SOAP notes, search patient history, ask clinical questions...' : 'Ask about your medications, blood reports, symptoms...'}
+            placeholder={isDoctor ? 'Draft SOAP notes, search patient history, ask clinical questions...' : 'Ask about your medicines, blood reports, symptoms...'}
             value={input}
             onChange={e => setInput(e.target.value)}
             disabled={loading}

@@ -215,7 +215,7 @@ export default function EmergencyCard() {
           {cardData?.medications?.length > 0 && (
             <div style={{ marginTop: 20, textAlign: 'left' }}>
               <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Pill size={14} color="var(--accent-purple)" /> Active Medications
+                <Pill size={14} color="var(--accent-purple)" /> Active Medicines
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {cardData.medications.map((med, i) => (

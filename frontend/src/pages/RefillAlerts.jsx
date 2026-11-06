@@ -50,7 +50,7 @@ export default function RefillAlerts() {
         <div>
           <h1 className="page-title">Refill Alerts</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>
-            {alerts.length} medication{alerts.length !== 1 ? 's' : ''} need{alerts.length === 1 ? 's' : ''} attention
+            {alerts.length} medicine{alerts.length !== 1 ? 's' : ''} need{alerts.length === 1 ? 's' : ''} attention
           </p>
         </div>
         <button onClick={fetchAll} className="btn-secondary"><RefreshCw size={15} /> Refresh</button>
@@ -62,7 +62,7 @@ export default function RefillAlerts() {
         <div className="empty-state glass-card" style={{ padding: 80 }}>
           <div className="empty-state-icon">✅</div>
           <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>All stocked up!</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>All your medications have sufficient supply.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>All your medicines have sufficient supply.</p>
         </div>
       ) : (
         <>
@@ -70,7 +70,7 @@ export default function RefillAlerts() {
           <div style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <AlertTriangle size={18} color="var(--accent-amber)" />
             <span style={{ fontSize: 14, color: 'var(--accent-amber)', fontWeight: 600 }}>
-              {alerts.length} medication{alerts.length !== 1 ? 's' : ''} running low — contact your pharmacy soon
+              {alerts.length} medicine{alerts.length !== 1 ? 's' : ''} running low — contact your pharmacy soon
             </span>
           </div>
 
@@ -132,7 +132,7 @@ export default function RefillAlerts() {
 
       {/* All meds stock overview */}
       <div className="glass-card" style={{ padding: 24, marginTop: 24 }}>
-        <h3 style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>All Medications — Stock Overview</h3>
+        <h3 style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>All Medicines — Stock Overview</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {all.map(med => {
             const pct = Math.min(100, (med.pillsRemaining / Math.max(med.refillThreshold * 3, 1)) * 100);
@@ -152,7 +152,7 @@ export default function RefillAlerts() {
               </div>
             );
           })}
-          {all.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No medications added yet.</p>}
+          {all.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No medicines added yet.</p>}
         </div>
       </div>
     </div>

@@ -402,7 +402,7 @@ export default function AdminDashboard() {
               subText={`${appointments.scheduled ?? 0} scheduled`}
             />
             <StatCard
-              label="Medications"
+              label="Medicines"
               value={medications.total ?? stats.totalMeds ?? 0}
               icon={Pill}
               to="/admin/prescriptions"

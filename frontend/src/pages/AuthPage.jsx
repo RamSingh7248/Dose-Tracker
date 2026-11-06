@@ -29,7 +29,7 @@ const PORTALS = [
     name: 'Patient Portal',
     badge: 'PATIENT',
     subtitle: 'Personal Health & Meds',
-    description: 'Manage medications, reminders & personal health records.',
+    description: 'Manage medicines, reminders & personal health records.',
     icon: User,
     color: '#3b82f6',
     borderActive: 'rgba(59, 130, 246, 0.6)',

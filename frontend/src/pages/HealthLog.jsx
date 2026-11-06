@@ -56,7 +56,7 @@ export default function HealthLog() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Health Log</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Your complete medication history and adherence report</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>Your complete medicine history and adherence report</p>
         </div>
         <button onClick={exportCSV} className="btn-secondary"><Download size={15} /> Export CSV</button>
       </div>
@@ -76,7 +76,7 @@ export default function HealthLog() {
           { label: 'Avg Adherence', value: `${avgAdherence}%`, color: '#8b5cf6', icon: TrendingUp },
           { label: 'Doses Taken',   value: totalTaken,          color: '#10b981', icon: Activity },
           { label: 'Doses Missed',  value: totalMissed,         color: '#f43f5e', icon: Calendar },
-          { label: 'Medications',   value: medications.length,  color: '#06b6d4', icon: Activity },
+          { label: 'Medicines',     value: medications.length,  color: '#06b6d4', icon: Activity },
         ].map(({ label, value, color, icon: Icon }) => (
           <div key={label} className="stat-card" style={{ padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>

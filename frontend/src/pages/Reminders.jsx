@@ -111,7 +111,7 @@ export default function Reminders() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.medication) { toast.error('Please select a medication'); return; }
+    if (!form.medication) { toast.error('Please select a medicine'); return; }
     if (form.recurringType === 'custom_days' && form.days.length === 0) {
       toast.error('Please select at least one day');
       return;
@@ -142,7 +142,7 @@ export default function Reminders() {
       toast.success(`Snoozed for ${minutes} minutes ⏰`);
       
       // Dispatch browser & speech notification
-      const medName = reminder.medication?.name || 'Medication';
+      const medName = reminder.medication?.name || 'Medicine';
       dispatchEnterpriseAlert({
         title: `⏰ Reminder Snoozed`,
         message: `${medName} reminder snoozed for ${minutes} mins`,
@@ -204,7 +204,7 @@ export default function Reminders() {
                 dispatchEnterpriseAlert({
                   title: '⏰ LIVE ALARM: Dolo (650 mg)',
                   message: 'Time to take your scheduled dose of Dolo (650 mg) right now!',
-                  voiceText: 'Attention! It is time to take your medication: Dolo 650 milligram. Please take your prescribed dose now.',
+                  voiceText: 'Attention! It is time to take your medicine: Dolo 650 milligram. Please take your prescribed dose now.',
                   sound: true,
                   voice: true,
                   browser: true,
@@ -266,7 +266,7 @@ export default function Reminders() {
                   <div style={{ flex: 1, minWidth: 220 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                       <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>
-                        {med?.name || 'Unknown medication'}
+                        {med?.name || 'Unknown medicine'}
                       </span>
                       {med?.dosage && (
                         <span className="badge badge-purple" style={{ fontSize: 11 }}>
@@ -386,9 +386,9 @@ export default function Reminders() {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>Select Medication *</label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>Select Medicine *</label>
                 <select className="input-field" name="medication" value={form.medication} onChange={handleChange} required>
-                  <option value="">Select a medication...</option>
+                  <option value="">Select a medicine...</option>
                   {medications.map(m => (
                     <option key={m._id} value={m._id}>{m.name} ({m.dosage} {m.dosageUnit})</option>
                   ))}

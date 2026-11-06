@@ -170,12 +170,12 @@ export default function PrescriptionScanner() {
     try {
       await prescriptionApi.saveExtracted(selectedRx._id, { medicines: valid, confidence: 100 });
       const res = await prescriptionApi.createMedications(selectedRx._id, { medicines: valid });
-      toast.success(res?.data?.message || 'Medications created with reminders!');
+      toast.success(res?.data?.message || 'Medicines created with reminders!');
       setSelectedRx(null);
       setExtractForm({ medicines: [createDefaultMedicine()] });
       fetchPrescriptions();
     } catch (err) { 
-      toast.error(err.response?.data?.message || 'Failed to create medications'); 
+      toast.error(err.response?.data?.message || 'Failed to create medicines'); 
     } finally { 
       setCreating(false); 
     }

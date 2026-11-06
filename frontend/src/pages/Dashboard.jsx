@@ -309,7 +309,7 @@ export default function Dashboard() {
         {/* Feature Pill Shortcuts */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} className="feature-pills">
           {[
-            { label: '💊 Medications', to: '/medications' },
+            { label: '💊 Medicines', to: '/medications' },
             { label: '⏰ Reminders', to: '/reminders' },
             { label: '📂 Health Vault', to: '/health-vault' },
             { label: '📷 Rx Scanner', to: '/prescription-scanner' },
@@ -525,7 +525,7 @@ export default function Dashboard() {
             </div>
             {todayDoses.length === 0 ? (
               <div className="empty-state" style={{ padding: '24px 0' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No upcoming medication doses scheduled today</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No upcoming medicine doses scheduled today</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

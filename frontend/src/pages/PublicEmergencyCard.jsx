@@ -186,7 +186,7 @@ export default function PublicEmergencyCard() {
         {/* Current Medications */}
         <div className="glass-card" style={{ padding: 24 }}>
           <h3 style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Pill size={18} color="var(--accent-purple)" /> Current Medications
+            <Pill size={18} color="var(--accent-purple)" /> Current Medicines
           </h3>
           {data.medications?.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -201,7 +201,7 @@ export default function PublicEmergencyCard() {
               ))}
             </div>
           ) : (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>No active medications listed.</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>No active medicines listed.</div>
           )}
         </div>
 
@@ -211,7 +211,7 @@ export default function PublicEmergencyCard() {
             <span>🔒</span> Secured Emergency Medical Record
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-            DoseTracker Smart Medication Manager
+            DoseTracker Smart Medicine Manager
           </div>
         </div>
 

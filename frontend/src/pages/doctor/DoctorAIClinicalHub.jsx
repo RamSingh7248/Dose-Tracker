@@ -9,8 +9,8 @@ import {
 
 const DOCTOR_SHORTCUTS = [
   { icon: '📝', label: 'SOAP Notes Draft',        prompt: 'Generate a structured SOAP note for a patient presenting with hypertension and mild fatigue.' },
-  { icon: '🩺', label: 'Patient Risk Analysis',   prompt: 'Analyze high-risk patients with missed medication adherence in the past 14 days.' },
-  { icon: '💊', label: 'Drug Interaction Check', prompt: 'Perform a comprehensive drug interaction and allergy audit for multi-medication prescriptions.' },
+  { icon: '🩺', label: 'Patient Risk Analysis',   prompt: 'Analyze high-risk patients with missed medicine adherence in the past 14 days.' },
+  { icon: '💊', label: 'Drug Interaction Check', prompt: 'Perform a comprehensive drug interaction and allergy audit for multi-medicine prescriptions.' },
   { icon: '📊', label: 'Visit Summary Draft',    prompt: 'Draft a patient-friendly visit summary including lifestyle instructions and follow-up timeline.' },
   { icon: '🏥', label: 'ICD-10 Coding Aid',       prompt: 'Provide ICD-10 and CPT coding suggestions for essential hypertension and routine follow-up.' },
 ];

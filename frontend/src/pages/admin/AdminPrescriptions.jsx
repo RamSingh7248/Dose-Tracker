@@ -86,7 +86,7 @@ export default function AdminPrescriptions() {
             Prescriptions
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '4px 0 0 0' }}>
-            System directory of digital medical prescriptions and medication orders
+            System directory of digital medical prescriptions and medicine orders
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export default function AdminPrescriptions() {
                 <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Patient</th>
                 <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Doctor</th>
                 <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Date</th>
-                <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Prescription Title / Medication</th>
+                <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Prescription Title / Medicine</th>
                 <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600 }}>Status</th>
                 <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
               </tr>
@@ -191,7 +191,7 @@ export default function AdminPrescriptions() {
                         {rx.createdAt ? new Date(rx.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
                       </td>
                       <td style={{ padding: '12px 16px', color: 'var(--text-primary)' }}>
-                        {rx.title || rx.originalName || 'Medication Prescription'}
+                        {rx.title || rx.originalName || 'Medicine Prescription'}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
@@ -258,7 +258,7 @@ export default function AdminPrescriptions() {
 
             <form onSubmit={handleCreatePrescription} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginBottom: 4 }}>Prescription Title / Medication</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginBottom: 4 }}>Prescription Title / Medicine</label>
                 <input
                   type="text"
                   required

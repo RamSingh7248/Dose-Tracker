@@ -123,7 +123,7 @@ export default function Members() {
           <div className="empty-state-icon" style={{ fontSize: 48, marginBottom: 12 }}>👨‍👩‍👦</div>
           <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>No family profiles added yet</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 24 }}>
-            Add your parents, children, or spouse to manage their medications & receive health alerts.
+            Add your parents, children, or spouse to manage their medicines & receive health alerts.
           </p>
           <button onClick={openAdd} className="btn-primary"><Plus size={16} /> Add Family Member</button>
         </div>

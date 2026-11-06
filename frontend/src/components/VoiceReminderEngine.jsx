@@ -71,7 +71,7 @@ export default function VoiceReminderEngine() {
           const key = `rem-${r._id}-${minuteKey}`;
           if (!firedMinutesRef.current.has(key)) {
             firedMinutesRef.current.add(key);
-            const medName = r.medication?.name || r.label || 'Medication';
+            const medName = r.medication?.name || r.label || 'Medicine';
             const dosage = `${r.medication?.dosage || ''} ${r.medication?.dosageUnit || ''}`.trim();
 
             triggerLiveAlert({
@@ -115,7 +115,7 @@ export default function VoiceReminderEngine() {
     // 2. Speak voice prompt
     const voiceText = notif.title.includes('Missed')
       ? `Attention. You missed a scheduled dose of ${notif.title.replace(/.*:/, '')}.`
-      : `Reminder. It is time to take your medication ${notif.title.replace(/.*:/, '')}.`;
+      : `Reminder. It is time to take your medicine ${notif.title.replace(/.*:/, '')}.`;
     speakVoicePrompt(voiceText);
 
     // 3. Trigger HTML5 Desktop Notification

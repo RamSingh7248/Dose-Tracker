@@ -178,16 +178,16 @@ export default function Adherence() {
         {/* Per-Medication Adherence Breakdown */}
         <div className="glass-card" style={{ padding: 24 }}>
           <h3 style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
-            💊 Per-Medication Completion Breakdown
+            💊 Per-Medicine Completion Breakdown
           </h3>
           {(!data?.perMedication || data.perMedication.length === 0) ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '16px 0' }}>No active medications logged in this period.</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '16px 0' }}>No active medicines logged in this period.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {data.perMedication.map(item => (
                 <div key={item.medication?._id || item.medication?.name} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{item.medication?.name || 'Medication'}</span>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{item.medication?.name || 'Medicine'}</span>
                     <span style={{ fontWeight: 800, fontSize: 13, color: getScoreColor(item.rate) }}>{item.rate}% Adherence</span>
                   </div>
                   <div className="progress-bar" style={{ height: 6 }}>

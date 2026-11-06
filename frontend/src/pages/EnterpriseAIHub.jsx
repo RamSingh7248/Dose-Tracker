@@ -12,9 +12,9 @@ const FEATURE_SHORTCUTS = [
   { icon: '🩸', label: 'Blood Report Analysis', prompt: 'Explain my complete blood count (CBC) and blood sugar report results in simple terms.' },
   { icon: '🧠', label: 'MRI / CT Summary',       prompt: 'Summarize my MRI and CT Scan findings and explain key medical terms.' },
   { icon: '🩻', label: 'X-Ray & ECG Summary',    prompt: 'Explain what an ECG reading and chest X-Ray summary means for my heart health.' },
-  { icon: '🥗', label: 'Diet & Exercise Tips',    prompt: 'Give me personalized diet and exercise suggestions that are safe with my active medications.' },
+  { icon: '🥗', label: 'Diet & Exercise Tips',    prompt: 'Give me personalized diet and exercise suggestions that are safe with my active medicines.' },
   { icon: '💧', label: 'Water & Sleep Tracker',   prompt: 'Provide hydration and sleep improvement advice tailored to my daily medicine schedule.' },
-  { icon: '⚠️', label: 'Drug Interaction Check', prompt: 'Check for drug interactions between my active medications and dietary supplements.' },
+  { icon: '⚠️', label: 'Drug Interaction Check', prompt: 'Check for drug interactions between my active medicines and dietary supplements.' },
 ];
 
 export default function EnterpriseAIHub() {
@@ -37,7 +37,7 @@ export default function EnterpriseAIHub() {
             🤖 AI Health Assistant
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>
-            Instant intelligent guidance for medications, lab reports, imaging &amp; health queries
+            Instant intelligent guidance for medicines, lab reports, imaging &amp; health queries
           </p>
         </div>
 

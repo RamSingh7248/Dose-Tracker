@@ -57,7 +57,7 @@ export default function StockPrediction() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 28 }}>
         {[
-          { label: 'Total Medications', value: predictions.length, icon: Package, color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)' },
+          { label: 'Total Medicines', value: predictions.length, icon: Package, color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)' },
           { label: 'Needs Refill', value: needsAttention.length, icon: AlertTriangle, color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
           { label: 'Good Stock', value: goodStock.length, icon: TrendingDown, color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
@@ -156,7 +156,7 @@ export default function StockPrediction() {
       {predictions.length === 0 && (
         <div className="empty-state">
           <div className="empty-state-icon">📦</div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No active medications to track stock for</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No active medicines to track stock for</p>
         </div>
       )}
     </div>

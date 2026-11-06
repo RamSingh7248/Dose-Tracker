@@ -588,7 +588,7 @@ export default function CleanSettingsPage() {
                 </div>
 
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  DoseTracker is a clean healthcare &amp; medication management platform for tracking doses, managing prescriptions, and coordinating appointments.
+                  DoseTracker is a clean healthcare &amp; medicine management platform for tracking doses, managing prescriptions, and coordinating appointments.
                 </p>
 
                 <div style={{ height: 1, background: 'var(--border-color)', margin: '4px 0' }} />

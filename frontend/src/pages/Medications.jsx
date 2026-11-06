@@ -72,7 +72,7 @@ export default function Medications() {
     try {
       const res = await medicationApi.getAll();
       setMedications(res.data.data || []);
-    } catch { toast.error('Failed to load medications'); }
+    } catch { toast.error('Failed to load medicines'); }
     finally { setLoading(false); }
   };
 
@@ -115,10 +115,10 @@ export default function Medications() {
       const payload = { ...form, member: form.member || null };
       if (editTarget) {
         await medicationApi.update(editTarget, payload);
-        toast.success('Medication updated!');
+        toast.success('Medicine updated!');
       } else {
         await medicationApi.create(payload);
-        toast.success('Medication added! 💊');
+        toast.success('Medicine added! 💊');
       }
       setShowModal(false);
       fetchAll();
@@ -132,7 +132,7 @@ export default function Medications() {
   const handleDelete = async (id) => {
     try {
       await medicationApi.remove(id);
-      toast.success('Medication removed');
+      toast.success('Medicine removed');
       setDeleteId(null);
       fetchAll();
       queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
@@ -149,8 +149,8 @@ export default function Medications() {
     <div className="animate-fade-in-up">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Medications</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>{medications.length} medication{medications.length !== 1 ? 's' : ''} tracked</p>
+          <h1 className="page-title">Medicines</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>{medications.length} medicine{medications.length !== 1 ? 's' : ''} tracked</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button
@@ -161,7 +161,7 @@ export default function Medications() {
             📷 Scan Barcode
           </button>
           <button onClick={openAdd} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Plus size={16} /> Add Medication
+            <Plus size={16} /> Add Medicine
           </button>
         </div>
       </div>
@@ -170,7 +170,7 @@ export default function Medications() {
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search medications..." className="input-field" style={{ paddingLeft: 36 }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search medicines..." className="input-field" style={{ paddingLeft: 36 }} />
         </div>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} className="input-field" style={{ width: 'auto', minWidth: 140 }}>
           <option value="all">All Categories</option>
@@ -187,11 +187,11 @@ export default function Medications() {
       ) : filtered.length === 0 ? (
         <div className="empty-state glass-card" style={{ padding: 60 }}>
           <div className="empty-state-icon">💊</div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No medications found</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No medicines found</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>
-            {search ? 'Try a different search term' : 'Start by adding your first medication'}
+            {search ? 'Try a different search term' : 'Start by adding your first medicine'}
           </p>
-          {!search && <button onClick={openAdd} className="btn-primary"><Plus size={16} /> Add Medication</button>}
+          {!search && <button onClick={openAdd} className="btn-primary"><Plus size={16} /> Add Medicine</button>}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
@@ -270,10 +270,10 @@ export default function Medications() {
             <div className="modal-header-fixed">
               <div>
                 <h2 className="modal-title-text">
-                  {editTarget ? 'Edit Medication' : 'Add Medication'}
+                  {editTarget ? 'Edit Medicine' : 'Add Medicine'}
                 </h2>
                 <p className="modal-subtitle-text">
-                  {editTarget ? 'Update prescription details, schedule times, and refill alerts' : 'Add a medication to track your schedule and stay on top of your doses.'}
+                  {editTarget ? 'Update prescription details, schedule times, and refill alerts' : 'Add a medicine to track your schedule and stay on top of your doses.'}
                 </p>
               </div>
               <button
@@ -338,7 +338,7 @@ export default function Medications() {
               {/* Name */}
               <div className="med-grid-2">
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Medication Name *</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Medicine Name *</label>
                   <input name="name" value={form.name} onChange={handleChange} className="input-field" placeholder="e.g. Metformin" required />
                 </div>
                 <div>
@@ -465,7 +465,7 @@ export default function Medications() {
                     Saving...
                   </>
                 ) : (
-                  editTarget ? 'Update Medication' : 'Save Medication'
+                  editTarget ? 'Update Medicine' : 'Save Medicine'
                 )}
               </button>
             </div>
@@ -480,7 +480,7 @@ export default function Medications() {
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDeleteId(null); }}>
           <div className="modal-box" style={{ maxWidth: 380, textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
-            <h3 style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Delete Medication?</h3>
+            <h3 style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Delete Medicine?</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 24 }}>This will remove all associated dose history.</p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setDeleteId(null)} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>

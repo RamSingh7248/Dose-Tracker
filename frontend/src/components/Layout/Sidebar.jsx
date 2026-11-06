@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 const navItems = [
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/medications',  icon: Pill,             label: 'Medications' },
+  { to: '/medications',  icon: Pill,             label: 'Medicines' },
   { to: '/dose-log',     icon: Clock,            label: 'Dose Log' },
   { to: '/reminders',   icon: Bell,             label: 'Reminders' },
   { to: '/members',      icon: Users,            label: 'Members' },

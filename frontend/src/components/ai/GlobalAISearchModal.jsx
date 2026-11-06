@@ -25,7 +25,7 @@ export default function GlobalAISearchModal({ isOpen, onClose }) {
       if (medsRes.status === 'fulfilled') {
         (medsRes.value.data.data || []).forEach(m => {
           if (m.name.toLowerCase().includes(q) || m.dosage?.toLowerCase().includes(q)) {
-            items.push({ id: m._id, type: 'Medication', title: m.name, subtitle: `${m.dosage} ${m.dosageUnit} - ${m.frequency}`, link: '/medications', icon: Pill });
+            items.push({ id: m._id, type: 'Medicine', title: m.name, subtitle: `${m.dosage} ${m.dosageUnit} - ${m.frequency}`, link: '/medications', icon: Pill });
           }
         });
       }
