@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  // Use VITE_API_URL if set; fallback to VITE_API_BASE_URL (historical) or relative '/api'
+  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api',
   withCredentials: true,
 });
 

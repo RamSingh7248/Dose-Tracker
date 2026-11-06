@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { aiHubApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -144,39 +146,60 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
     }
   };
 
-  const parseMarkdown = (content) => {
-    if (!content) return null;
-    const blocks = content.split('\n\n');
-    return blocks.map((block, bIdx) => {
-      const lines = block.split('\n').filter(Boolean);
-      const isList = lines.some(l => l.trim().startsWith('- ') || l.trim().startsWith('* '));
-
-      if (isList) {
-        return (
-          <ul key={bIdx} style={{ margin: '8px 0', paddingLeft: 20, listStyleType: 'disc' }}>
-            {lines.map((line, lIdx) => {
-              const clean = line.trim().replace(/^[-*]\s+/, '');
-              return <li key={lIdx} style={{ marginBottom: 4 }}>{clean}</li>;
-            })}
-          </ul>
-        );
-      }
-
-      return (
-        <div key={bIdx} style={{ margin: '6px 0', lineHeight: 1.6 }}>
-          {lines.map((line, lIdx) => (
-            <React.Fragment key={lIdx}>
-              {lIdx > 0 && <br />}
-              {line}
-            </React.Fragment>
-          ))}
-        </div>
-      );
-    });
-  };
+// Render markdown content using react-markdown with GFM support
+const renderMarkdown = (content) => {
+  if (!content) return null;
+  // Normalize HTML line breaks to newlines
+  const sanitized = content.replace(/<\s*br\s*\/?>/gi, '\n');
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        // Table wrapper for responsive scrolling
+        table: ({node, ...props}) => (
+          <div className="ai-response-table-wrapper" style={{ overflowX: 'auto', margin: '16px 0' }}>
+            <table className="ai-response-table" {...props} style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', tableLayout: 'auto' }} />
+          </div>
+        ),
+        // Table cells styling
+        th: ({node, ...props}) => (
+          <th style={{ padding: '12px 16px', textAlign: 'left', border: '1px solid var(--border-color)', fontWeight: 600, background: 'var(--surface-secondary)', lineHeight: 1.6, overflowWrap: 'anywhere' }} {...props} />
+        ),
+        td: ({node, ...props}) => (
+          <td style={{ padding: '12px 16px', textAlign: 'left', border: '1px solid var(--border-color)', lineHeight: 1.6, overflowWrap: 'anywhere' }} {...props} />
+        ),
+        // Headings
+        h1: ({node, ...props}) => <h1 style={{ fontSize: '1.5rem', margin: '0.8em 0' }} {...props} />, 
+        h2: ({node, ...props}) => <h2 style={{ fontSize: '1.35rem', margin: '0.7em 0' }} {...props} />, 
+        h3: ({node, ...props}) => <h3 style={{ fontSize: '1.2rem', margin: '0.6em 0' }} {...props} />, 
+        // Lists
+        ul: ({node, ordered, ...props}) => (
+          <ul style={{ marginLeft: '1.2em', listStyleType: 'disc', marginBottom: '0.8em' }} {...props} />
+        ),
+        ol: ({node, ...props}) => (
+          <ol style={{ marginLeft: '1.2em', marginBottom: '0.8em' }} {...props} />
+        ),
+        li: ({node, ...props}) => <li style={{ marginBottom: '0.4em' }} {...props} />, 
+        blockquote: ({node, ...props}) => (
+          <blockquote style={{ borderLeft: '4px solid var(--accent-purple)', paddingLeft: '0.8em', color: 'var(--text-muted)', margin: '0.8em 0' }} {...props} />
+        ),
+        code: ({node, inline, className, children, ...props}) => {
+          const style = inline
+            ? { background: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }
+            : { background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '8px', borderRadius: '6px', overflowX: 'auto' };
+          return <code style={style} {...props}>{children}</code>;
+        },
+        // Paragraph spacing
+        p: ({node, ...props}) => <p style={{ marginBottom: '0.8em', lineHeight: 1.7 }} {...props} />, 
+      }}
+    >
+      {sanitized}
+    </ReactMarkdown>
+  );
+};
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--card-bg, #1a1c23)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - var(--header-height, 0px))', minHeight: 0, borderRadius: 16, border: '1px solid var(--border-color)', background: 'var(--card-bg, #1a1c23)', overflow: 'hidden' }}>
       {/* Top Provider Bar */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -204,7 +227,7 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 20 }}>
         {messages.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', gap: 20, textAlign: 'center', padding: '20px 10px' }}>
             <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(139,92,246,0.3)' }}>
@@ -274,8 +297,8 @@ export default function AIChatWindow({ category = 'patient_health', defaultProvi
                   color: msg.role === 'user' ? '#ffffff' : 'var(--text-primary)',
                   position: 'relative'
                 }}>
-                  <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-                    {msg.role === 'user' ? msg.content : parseMarkdown(msg.content)}
+                  <div style={{ fontSize: 13, lineHeight: 1.6, wordBreak: 'break-word', whiteSpace: 'pre-wrap', maxWidth: '900px', margin: '0 auto' }}>
+                    {msg.role === 'user' ? msg.content : renderMarkdown(msg.content)}
                   </div>
 
                   {msg.role === 'assistant' && (
